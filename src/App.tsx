@@ -330,10 +330,6 @@ function App() {
           <p className="text-xl mb-8">Delicious Indian cuisine delivered to your room</p>
           <div className="flex items-center justify-center space-x-6 text-amber-300">
             <div className="flex items-center space-x-2">
-              <Clock className="h-5 w-5" />
-              <span>24/7 Service</span>
-            </div>
-            <div className="flex items-center space-x-2">
               <Utensils className="h-5 w-5" />
               <span>Fresh & Hot</span>
             </div>
