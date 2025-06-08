@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { ShoppingCart, Plus, Minus, Hotel, Utensils, Clock, MapPin, Phone, Mail, User, History, CreditCard, ExternalLink } from 'lucide-react';
-import { supabase, DatabaseOrder } from './lib/supabase';
 
 interface MenuItem {
   id: number;
@@ -169,14 +168,20 @@ function App() {
   const [showOrderHistory, setShowOrderHistory] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const savedCart = localStorage.getItem('hotelCart');
+    const savedOrders = localStorage.getItem('hotelOrders');
     const savedCustomerDetails = localStorage.getItem('hotelCustomerDetails');
     
     if (savedCart) {
       setCart(JSON.parse(savedCart));
+    }
+    if (savedOrders) {
+      setOrders(JSON.parse(savedOrders).map((order: any) => ({
+        ...order,
+        timestamp: new Date(order.timestamp)
+      })));
     }
     if (savedCustomerDetails) {
       setCustomerDetails(JSON.parse(savedCustomerDetails));
@@ -188,78 +193,12 @@ function App() {
   }, [cart]);
 
   useEffect(() => {
+    localStorage.setItem('hotelOrders', JSON.stringify(orders));
+  }, [orders]);
+
+  useEffect(() => {
     localStorage.setItem('hotelCustomerDetails', JSON.stringify(customerDetails));
   }, [customerDetails]);
-
-  // Load orders from database when mobile number is available
-  useEffect(() => {
-    if (customerDetails.mobile && customerDetails.mobile.length >= 10) {
-      loadOrdersFromDatabase(customerDetails.mobile);
-    }
-  }, [customerDetails.mobile]);
-
-  const loadOrdersFromDatabase = async (mobile: string) => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('customer_mobile', mobile)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error loading orders:', error);
-        return;
-      }
-
-      if (data) {
-        const formattedOrders: Order[] = data.map((dbOrder: DatabaseOrder) => ({
-          id: dbOrder.id,
-          items: dbOrder.items,
-          customerDetails: {
-            name: dbOrder.customer_name,
-            mobile: dbOrder.customer_mobile,
-            roomNumber: dbOrder.room_number
-          },
-          total: dbOrder.total,
-          timestamp: new Date(dbOrder.created_at),
-          status: dbOrder.status,
-          paymentMethod: dbOrder.payment_method
-        }));
-        setOrders(formattedOrders);
-      }
-    } catch (error) {
-      console.error('Error loading orders:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const saveOrderToDatabase = async (order: Order) => {
-    try {
-      const { error } = await supabase
-        .from('orders')
-        .insert({
-          id: order.id,
-          customer_name: order.customerDetails.name,
-          customer_mobile: order.customerDetails.mobile,
-          room_number: order.customerDetails.roomNumber,
-          items: order.items,
-          total: order.total,
-          status: order.status,
-          payment_method: order.paymentMethod,
-          created_at: order.timestamp.toISOString()
-        });
-
-      if (error) {
-        console.error('Error saving order:', error);
-        throw error;
-      }
-    } catch (error) {
-      console.error('Error saving order to database:', error);
-      throw error;
-    }
-  };
 
   const addToCart = (item: MenuItem) => {
     setCart(prevCart => {
@@ -291,38 +230,26 @@ function App() {
     return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
   };
 
-  const placeOrder = async () => {
+  const placeOrder = () => {
     if (customerDetails.name && customerDetails.mobile && customerDetails.roomNumber && cart.length > 0) {
-      try {
-        setLoading(true);
-        const newOrder: Order = {
-          id: Date.now().toString(),
-          items: [...cart],
-          customerDetails: { ...customerDetails },
-          total: getTotalPrice(),
-          timestamp: new Date(),
-          status: 'preparing',
-          paymentMethod: 'Pay at Checkout'
-        };
-        
-        // Save to database
-        await saveOrderToDatabase(newOrder);
-        
-        // Update local state
-        setOrders(prevOrders => [newOrder, ...prevOrders]);
-        setOrderPlaced(true);
-        setCart([]);
-        
-        setTimeout(() => {
-          setOrderPlaced(false);
-          setShowCart(false);
-        }, 3000);
-      } catch (error) {
-        console.error('Error placing order:', error);
-        alert('Failed to place order. Please try again.');
-      } finally {
-        setLoading(false);
-      }
+      const newOrder: Order = {
+        id: Date.now().toString(),
+        items: [...cart],
+        customerDetails: { ...customerDetails },
+        total: getTotalPrice(),
+        timestamp: new Date(),
+        status: 'preparing',
+        paymentMethod: 'Pay at Checkout'
+      };
+      
+      setOrders(prevOrders => [newOrder, ...prevOrders]);
+      setOrderPlaced(true);
+      setCart([]);
+      
+      setTimeout(() => {
+        setOrderPlaced(false);
+        setShowCart(false);
+      }, 3000);
     }
   };
 
@@ -378,11 +305,6 @@ function App() {
               >
                 <History className="h-5 w-5" />
                 <span>Orders</span>
-                {orders.length > 0 && (
-                  <span className="bg-red-500 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs">
-                    {orders.length}
-                  </span>
-                )}
               </button>
               <button
                 onClick={() => setShowCart(true)}
@@ -608,11 +530,6 @@ function App() {
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="Enter your mobile number"
                       />
-                      {customerDetails.mobile && customerDetails.mobile.length >= 10 && orders.length > 0 && (
-                        <p className="text-sm text-green-600 mt-1">
-                          Found {orders.length} previous order{orders.length !== 1 ? 's' : ''} for this number
-                        </p>
-                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -647,17 +564,10 @@ function App() {
                   
                   <button
                     onClick={placeOrder}
-                    disabled={!customerDetails.name || !customerDetails.mobile || !customerDetails.roomNumber || cart.length === 0 || loading}
-                    className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center"
+                    disabled={!customerDetails.name || !customerDetails.mobile || !customerDetails.roomNumber || cart.length === 0}
+                    className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                   >
-                    {loading ? (
-                      <div className="flex items-center space-x-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        <span>Placing Order...</span>
-                      </div>
-                    ) : (
-                      'Place Order'
-                    )}
+                    Place Order
                   </button>
                 </>
               )}
@@ -681,31 +591,10 @@ function App() {
                 </button>
               </div>
               
-              {!customerDetails.mobile ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-500 mb-4">Enter your mobile number in the cart to view your order history</p>
-                  <button
-                    onClick={() => {
-                      setShowOrderHistory(false);
-                      setShowCart(true);
-                    }}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    Go to Cart
-                  </button>
-                </div>
-              ) : loading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                  <p className="text-gray-500">Loading your orders...</p>
-                </div>
-              ) : orders.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">No orders found for {customerDetails.mobile}</p>
+              {orders.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">No orders yet</p>
               ) : (
                 <div className="space-y-4">
-                  <p className="text-sm text-gray-600 mb-4">
-                    Showing {orders.length} order{orders.length !== 1 ? 's' : ''} for {customerDetails.mobile}
-                  </p>
                   {orders.map((order) => (
                     <div key={order.id} className="border rounded-lg p-4">
                       <div className="flex justify-between items-start mb-3">
