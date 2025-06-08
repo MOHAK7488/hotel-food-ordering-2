@@ -428,7 +428,7 @@ function App() {
               <h4 className="text-lg font-semibold mb-4">Contact Information</h4>
               <div className="space-y-2 text-gray-400">
                 <div className="flex items-center space-x-2">
-                  <MapPin className="h-4 w-4" />
+                  <MapPin className="h-5 w-5" />
                   <span>11/8/1, Tilak Rd, Tilak Nagar, Khurbura Mohalla, Dehradun, Uttarakhand 248001</span>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -550,7 +550,7 @@ function App() {
                         <span className="font-semibold text-gray-900">Payment Method</span>
                       </div>
                       <p className="text-gray-600 mt-1">Pay at Checkout</p>
-                      <p className="text-sm text-gray-500 mt-1">You can pay with Cash, UPI or Card at checkout.</p>
+                      <p className="text-sm text-gray-500 mt-1">You can pay with caseash, UPI or Card at checkout.</p>
                     </div>
                   </div>
                   
