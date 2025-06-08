@@ -288,6 +288,17 @@ function App() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
+              <a
+                href="https://www.hoteltheparkresidency.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+              >
+                <Hotel className="h-4 w-4" />
+                <span className="hidden sm:inline">Book Room</span>
+                <span className="sm:hidden">Book</span>
+                <ExternalLink className="h-4 w-4" />
+              </a>
               <button
                 onClick={() => setShowOrderHistory(true)}
                 className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center space-x-2"
@@ -318,11 +329,31 @@ function App() {
           <h2 className="text-4xl md:text-5xl font-bold mb-4">Room Service</h2>
           <p className="text-xl mb-8">Delicious Indian cuisine delivered to your room</p>
           <div className="flex items-center justify-center space-x-6 text-amber-300">
-
+            <div className="flex items-center space-x-2">
+              <Clock className="h-5 w-5" />
+              <span>24/7 Service</span>
+            </div>
             <div className="flex items-center space-x-2">
               <Utensils className="h-5 w-5" />
               <span>Fresh & Hot</span>
             </div>
+          </div>
+          
+          {/* Hotel Booking CTA in Hero */}
+          <div className="mt-8">
+            <a
+              href="https://www.hoteltheparkresidency.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center space-x-2 bg-amber-600 text-white px-6 py-3 rounded-lg hover:bg-amber-700 transition-colors text-lg font-semibold"
+            >
+              <Hotel className="h-5 w-5" />
+              <span>Book Room / Check Availability</span>
+              <ExternalLink className="h-5 w-5" />
+            </a>
+            <p className="text-amber-200 mt-2 text-sm">
+              Extend your stay or check room availability
+            </p>
           </div>
         </div>
       </section>
@@ -416,28 +447,10 @@ function App() {
             </div>
             <div>
               <h4 className="text-lg font-semibold mb-4">Room Service Hours</h4>
-              <div className="space-y-2 text-gray-400 mb-6">
+              <div className="space-y-2 text-gray-400">
                 <div>Breakfast: 6:00 AM - 11:00 AM</div>
                 <div>Lunch: 12:00 PM - 4:00 PM</div>
                 <div>Dinner: 6:00 PM - 11:00 PM</div>
-              </div>
-              
-              {/* Hotel Booking Link */}
-              <div className="border-t border-gray-700 pt-6">
-                <h4 className="text-lg font-semibold mb-3">Hotel Services</h4>
-                <a
-                  href="https://www.hoteltheparkresidency.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center space-x-2 bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition-colors"
-                >
-                  <Hotel className="h-4 w-4" />
-                  <span>Book Room / Check Availability</span>
-                  <ExternalLink className="h-4 w-4" />
-                </a>
-                <p className="text-sm text-gray-400 mt-2">
-                  Extend your stay or check room availability
-                </p>
               </div>
             </div>
           </div>
