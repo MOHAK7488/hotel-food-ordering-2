@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Plus, Minus, Hotel, Utensils, Clock, MapPin, Phone, Mail, User, History, CreditCard } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Hotel, Utensils, Clock, MapPin, Phone, Mail, User, History, CreditCard, ExternalLink } from 'lucide-react';
 
 interface MenuItem {
   id: number;
@@ -416,10 +416,28 @@ function App() {
             </div>
             <div>
               <h4 className="text-lg font-semibold mb-4">Room Service Hours</h4>
-              <div className="space-y-2 text-gray-400">
+              <div className="space-y-2 text-gray-400 mb-6">
                 <div>Breakfast: 6:00 AM - 11:00 AM</div>
                 <div>Lunch: 12:00 PM - 4:00 PM</div>
                 <div>Dinner: 6:00 PM - 11:00 PM</div>
+              </div>
+              
+              {/* Hotel Booking Link */}
+              <div className="border-t border-gray-700 pt-6">
+                <h4 className="text-lg font-semibold mb-3">Hotel Services</h4>
+                <a
+                  href="https://www.hoteltheparkresidency.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center space-x-2 bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition-colors"
+                >
+                  <Hotel className="h-4 w-4" />
+                  <span>Book Room / Check Availability</span>
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+                <p className="text-sm text-gray-400 mt-2">
+                  Extend your stay or check room availability
+                </p>
               </div>
             </div>
           </div>
