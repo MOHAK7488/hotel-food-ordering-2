@@ -428,7 +428,7 @@ function App() {
               <h4 className="text-lg font-semibold mb-4">Contact Information</h4>
               <div className="space-y-2 text-gray-400">
                 <div className="flex items-center space-x-2">
-                  <MapPin className="h-5 w-5" />
+                  <MapPin className="h-10 w-10" />
                   <span>11/8/1, Tilak Rd, Tilak Nagar, Khurbura Mohalla, Dehradun, Uttarakhand 248001</span>
                 </div>
                 <div className="flex items-center space-x-2">
