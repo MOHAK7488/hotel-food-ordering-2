@@ -550,7 +550,7 @@ function App() {
                         <span className="font-semibold text-gray-900">Payment Method</span>
                       </div>
                       <p className="text-gray-600 mt-1">Pay at Checkout</p>
-                      <p className="text-sm text-gray-500 mt-1">You can pay with cash, UPI or card at checkout.</p>
+                      <p className="text-sm text-gray-500 mt-1">You can pay with Cash, UPI or Card at checkout.</p>
                     </div>
                   </div>
                   
