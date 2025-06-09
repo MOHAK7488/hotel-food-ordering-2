@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Plus, Minus, Hotel, Utensils, Clock, MapPin, Phone, Mail, User, History, CreditCard, ExternalLink } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Hotel, Utensils, Clock, MapPin, Phone, Mail, User, History, CreditCard, ExternalLink, Coffee } from 'lucide-react';
 
 interface MenuItem {
   id: number;
   name: string;
   description: string;
   price: number;
-  category: 'breakfast' | 'lunch' | 'dinner';
+  category: 'breakfast' | 'lunch' | 'dinner' | 'beverages';
   image: string;
   veg: boolean;
 }
@@ -69,10 +69,28 @@ const menuItems: MenuItem[] = [
     image: 'https://images.pexels.com/photos/5560763/pexels-photo-5560763.jpeg?auto=compress&cs=tinysrgb&w=300',
     veg: true
   },
+  {
+    id: 5,
+    name: "Chole Bhature",
+    description: "Spicy chickpea curry with deep-fried bread, served with pickles and onions",
+    price: 160,
+    category: 'breakfast',
+    image: 'https://images.pexels.com/photos/1624487/pexels-photo-1624487.jpeg?auto=compress&cs=tinysrgb&w=300',
+    veg: true
+  },
+  {
+    id: 6,
+    name: "Upma",
+    description: "Savory semolina porridge with vegetables and South Indian spices",
+    price: 90,
+    category: 'breakfast',
+    image: 'https://images.pexels.com/photos/5560734/pexels-photo-5560734.jpeg?auto=compress&cs=tinysrgb&w=300',
+    veg: true
+  },
   
   // Lunch
   {
-    id: 5,
+    id: 7,
     name: "Butter Chicken",
     description: "Tender chicken in rich tomato and cream sauce, served with basmati rice",
     price: 320,
@@ -81,7 +99,7 @@ const menuItems: MenuItem[] = [
     veg: false
   },
   {
-    id: 6,
+    id: 8,
     name: "Paneer Makhani",
     description: "Cottage cheese cubes in creamy tomato gravy with aromatic spices",
     price: 280,
@@ -90,8 +108,8 @@ const menuItems: MenuItem[] = [
     veg: true
   },
   {
-    id: 7,
-    name: "Biryani (Chicken)",
+    id: 9,
+    name: "Chicken Biryani",
     description: "Fragrant basmati rice layered with spiced chicken and aromatic herbs",
     price: 350,
     category: 'lunch',
@@ -99,7 +117,7 @@ const menuItems: MenuItem[] = [
     veg: false
   },
   {
-    id: 8,
+    id: 10,
     name: "Dal Tadka",
     description: "Yellow lentils tempered with ghee, cumin, and fresh herbs",
     price: 180,
@@ -108,7 +126,7 @@ const menuItems: MenuItem[] = [
     veg: true
   },
   {
-    id: 9,
+    id: 11,
     name: "Rogan Josh",
     description: "Kashmiri lamb curry with aromatic spices and rich gravy",
     price: 420,
@@ -116,10 +134,37 @@ const menuItems: MenuItem[] = [
     image: 'https://images.pexels.com/photos/2474661/pexels-photo-2474661.jpeg?auto=compress&cs=tinysrgb&w=300',
     veg: false
   },
+  {
+    id: 12,
+    name: "Rajma Chawal",
+    description: "Red kidney beans curry served with steamed basmati rice",
+    price: 200,
+    category: 'lunch',
+    image: 'https://images.pexels.com/photos/1624487/pexels-photo-1624487.jpeg?auto=compress&cs=tinysrgb&w=300',
+    veg: true
+  },
+  {
+    id: 13,
+    name: "Kadai Chicken",
+    description: "Spicy chicken cooked with bell peppers and onions in kadai masala",
+    price: 300,
+    category: 'lunch',
+    image: 'https://images.pexels.com/photos/2474661/pexels-photo-2474661.jpeg?auto=compress&cs=tinysrgb&w=300',
+    veg: false
+  },
+  {
+    id: 14,
+    name: "Aloo Gobi",
+    description: "Dry curry of potatoes and cauliflower with turmeric and spices",
+    price: 160,
+    category: 'lunch',
+    image: 'https://images.pexels.com/photos/1624487/pexels-photo-1624487.jpeg?auto=compress&cs=tinysrgb&w=300',
+    veg: true
+  },
   
   // Dinner
   {
-    id: 10,
+    id: 15,
     name: "Tandoori Chicken",
     description: "Clay oven roasted chicken marinated in yogurt and spices",
     price: 380,
@@ -128,7 +173,7 @@ const menuItems: MenuItem[] = [
     veg: false
   },
   {
-    id: 11,
+    id: 16,
     name: "Palak Paneer",
     description: "Cottage cheese in creamy spinach gravy with Indian spices",
     price: 260,
@@ -137,7 +182,7 @@ const menuItems: MenuItem[] = [
     veg: true
   },
   {
-    id: 12,
+    id: 17,
     name: "Fish Curry",
     description: "Fresh fish cooked in coconut milk with South Indian spices",
     price: 340,
@@ -146,18 +191,146 @@ const menuItems: MenuItem[] = [
     veg: false
   },
   {
-    id: 13,
+    id: 18,
     name: "Naan & Curry Combo",
     description: "Choice of curry with fresh naan bread and basmati rice",
     price: 220,
     category: 'dinner',
     image: 'https://images.pexels.com/photos/1624487/pexels-photo-1624487.jpeg?auto=compress&cs=tinysrgb&w=300',
     veg: true
+  },
+  {
+    id: 19,
+    name: "Mutton Curry",
+    description: "Tender mutton pieces cooked in rich onion and tomato gravy",
+    price: 450,
+    category: 'dinner',
+    image: 'https://images.pexels.com/photos/2474661/pexels-photo-2474661.jpeg?auto=compress&cs=tinysrgb&w=300',
+    veg: false
+  },
+  {
+    id: 20,
+    name: "Paneer Tikka",
+    description: "Grilled cottage cheese cubes marinated in spices and yogurt",
+    price: 240,
+    category: 'dinner',
+    image: 'https://images.pexels.com/photos/1624487/pexels-photo-1624487.jpeg?auto=compress&cs=tinysrgb&w=300',
+    veg: true
+  },
+  {
+    id: 21,
+    name: "Chicken Tikka Masala",
+    description: "Grilled chicken pieces in creamy tomato-based curry",
+    price: 330,
+    category: 'dinner',
+    image: 'https://images.pexels.com/photos/2474661/pexels-photo-2474661.jpeg?auto=compress&cs=tinysrgb&w=300',
+    veg: false
+  },
+  {
+    id: 22,
+    name: "Bhindi Masala",
+    description: "Okra cooked with onions, tomatoes, and aromatic spices",
+    price: 140,
+    category: 'dinner',
+    image: 'https://images.pexels.com/photos/1624487/pexels-photo-1624487.jpeg?auto=compress&cs=tinysrgb&w=300',
+    veg: true
+  },
+  
+  // Beverages
+  {
+    id: 23,
+    name: "Masala Chai",
+    description: "Traditional Indian spiced tea with cardamom, ginger, and cinnamon",
+    price: 40,
+    category: 'beverages',
+    image: 'https://images.pexels.com/photos/1793037/pexels-photo-1793037.jpeg?auto=compress&cs=tinysrgb&w=300',
+    veg: true
+  },
+  {
+    id: 24,
+    name: "Filter Coffee",
+    description: "South Indian style strong coffee with milk and sugar",
+    price: 50,
+    category: 'beverages',
+    image: 'https://images.pexels.com/photos/302899/pexels-photo-302899.jpeg?auto=compress&cs=tinysrgb&w=300',
+    veg: true
+  },
+  {
+    id: 25,
+    name: "Fresh Lime Soda",
+    description: "Refreshing lime juice with soda water and mint",
+    price: 60,
+    category: 'beverages',
+    image: 'https://images.pexels.com/photos/1233319/pexels-photo-1233319.jpeg?auto=compress&cs=tinysrgb&w=300',
+    veg: true
+  },
+  {
+    id: 26,
+    name: "Mango Lassi",
+    description: "Creamy yogurt drink blended with fresh mango pulp",
+    price: 80,
+    category: 'beverages',
+    image: 'https://images.pexels.com/photos/1233319/pexels-photo-1233319.jpeg?auto=compress&cs=tinysrgb&w=300',
+    veg: true
+  },
+  {
+    id: 27,
+    name: "Virgin Mojito",
+    description: "Refreshing mint and lime mocktail with soda water",
+    price: 120,
+    category: 'beverages',
+    image: 'https://images.pexels.com/photos/1233319/pexels-photo-1233319.jpeg?auto=compress&cs=tinysrgb&w=300',
+    veg: true
+  },
+  {
+    id: 28,
+    name: "Blue Lagoon Mocktail",
+    description: "Blue curacao flavored refreshing drink with lemon and soda",
+    price: 140,
+    category: 'beverages',
+    image: 'https://images.pexels.com/photos/1233319/pexels-photo-1233319.jpeg?auto=compress&cs=tinysrgb&w=300',
+    veg: true
+  },
+  {
+    id: 29,
+    name: "Iced Tea",
+    description: "Chilled black tea with lemon and mint",
+    price: 70,
+    category: 'beverages',
+    image: 'https://images.pexels.com/photos/1233319/pexels-photo-1233319.jpeg?auto=compress&cs=tinysrgb&w=300',
+    veg: true
+  },
+  {
+    id: 30,
+    name: "Fresh Orange Juice",
+    description: "Freshly squeezed orange juice with pulp",
+    price: 90,
+    category: 'beverages',
+    image: 'https://images.pexels.com/photos/1233319/pexels-photo-1233319.jpeg?auto=compress&cs=tinysrgb&w=300',
+    veg: true
+  },
+  {
+    id: 31,
+    name: "Thandai",
+    description: "Traditional Indian drink with milk, almonds, and aromatic spices",
+    price: 100,
+    category: 'beverages',
+    image: 'https://images.pexels.com/photos/1233319/pexels-photo-1233319.jpeg?auto=compress&cs=tinysrgb&w=300',
+    veg: true
+  },
+  {
+    id: 32,
+    name: "Coconut Water",
+    description: "Fresh tender coconut water, naturally refreshing",
+    price: 60,
+    category: 'beverages',
+    image: 'https://images.pexels.com/photos/1233319/pexels-photo-1233319.jpeg?auto=compress&cs=tinysrgb&w=300',
+    veg: true
   }
 ];
 
 function App() {
-  const [activeCategory, setActiveCategory] = useState<'breakfast' | 'lunch' | 'dinner'>('breakfast');
+  const [activeCategory, setActiveCategory] = useState<'breakfast' | 'lunch' | 'dinner' | 'beverages'>('breakfast');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [customerDetails, setCustomerDetails] = useState<CustomerDetails>({
     name: '',
@@ -272,6 +445,13 @@ function App() {
     });
   };
 
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'beverages': return <Coffee className="h-5 w-5" />;
+      default: return <Utensils className="h-5 w-5" />;
+    }
+  };
+
   const filteredItems = menuItems.filter(item => item.category === activeCategory);
 
   return (
@@ -333,6 +513,10 @@ function App() {
               <Utensils className="h-5 w-5" />
               <span>Fresh & Hot</span>
             </div>
+            <div className="flex items-center space-x-2">
+              <Coffee className="h-5 w-5" />
+              <span>Beverages Available</span>
+            </div>
           </div>
           
           {/* Hotel Booking CTA in Hero */}
@@ -357,18 +541,19 @@ function App() {
       {/* Menu Categories */}
       <section className="py-8 bg-white sticky top-20 z-30 border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-center space-x-8">
-            {['breakfast', 'lunch', 'dinner'].map((category) => (
+          <div className="flex justify-center space-x-4 md:space-x-8 overflow-x-auto">
+            {['breakfast', 'lunch', 'dinner', 'beverages'].map((category) => (
               <button
                 key={category}
                 onClick={() => setActiveCategory(category as any)}
-                className={`px-6 py-3 rounded-full font-semibold transition-all ${
+                className={`flex items-center space-x-2 px-4 md:px-6 py-3 rounded-full font-semibold transition-all whitespace-nowrap ${
                   activeCategory === category
                     ? 'bg-amber-600 text-white shadow-lg'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                {category.charAt(0).toUpperCase() + category.slice(1)}
+                {getCategoryIcon(category)}
+                <span>{category.charAt(0).toUpperCase() + category.slice(1)}</span>
               </button>
             ))}
           </div>
@@ -442,11 +627,12 @@ function App() {
               </div>
             </div>
             <div>
-              <h4 className="text-lg font-semibold mb-4">Room Service Hours</h4>
+              <h4 className="text-lg font-semibold mb-4">Service Hours</h4>
               <div className="space-y-2 text-gray-400">
                 <div>Breakfast: 6:00 AM - 11:00 AM</div>
                 <div>Lunch: 12:00 PM - 4:00 PM</div>
                 <div>Dinner: 6:00 PM - 11:00 PM</div>
+                <div>Beverages: 24/7 Available</div>
               </div>
             </div>
           </div>
@@ -550,7 +736,7 @@ function App() {
                         <span className="font-semibold text-gray-900">Payment Method</span>
                       </div>
                       <p className="text-gray-600 mt-1">Pay at Checkout</p>
-                      <p className="text-sm text-gray-500 mt-1">You can pay with caseash, UPI or Card at checkout.</p>
+                      <p className="text-sm text-gray-500 mt-1">You can pay with cash, UPI or Card at checkout.</p>
                     </div>
                   </div>
                   
