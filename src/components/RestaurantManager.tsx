@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   ChefHat, 
   Clock, 
@@ -21,7 +21,9 @@ import {
   Eye,
   X,
   LogOut,
-  Shield
+  Shield,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 
 interface OrderItem {
@@ -61,6 +63,58 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [notifications, setNotifications] = useState<number>(0);
   const [sessionTimeLeft, setSessionTimeLeft] = useState<string>('');
+  const [lastOrderCount, setLastOrderCount] = useState<number>(0);
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
+  const [newOrderAlert, setNewOrderAlert] = useState<boolean>(false);
+  
+  // Audio context for notification sound
+  const audioContextRef = useRef<AudioContext | null>(null);
+
+  // Initialize audio context
+  useEffect(() => {
+    const initAudio = () => {
+      try {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      } catch (error) {
+        console.log('Audio context not supported');
+      }
+    };
+
+    initAudio();
+
+    return () => {
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
+    };
+  }, []);
+
+  // Play notification sound
+  const playNotificationSound = () => {
+    if (!soundEnabled || !audioContextRef.current) return;
+
+    try {
+      const context = audioContextRef.current;
+      const oscillator = context.createOscillator();
+      const gainNode = context.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(context.destination);
+
+      // Create a pleasant notification sound (two-tone beep)
+      oscillator.frequency.setValueAtTime(800, context.currentTime);
+      oscillator.frequency.setValueAtTime(600, context.currentTime + 0.1);
+      oscillator.frequency.setValueAtTime(800, context.currentTime + 0.2);
+
+      gainNode.gain.setValueAtTime(0.3, context.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.3);
+
+      oscillator.start(context.currentTime);
+      oscillator.stop(context.currentTime + 0.3);
+    } catch (error) {
+      console.log('Error playing notification sound:', error);
+    }
+  };
 
   // Check session validity and calculate remaining time
   useEffect(() => {
@@ -99,7 +153,7 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
     return () => clearInterval(sessionInterval);
   }, [onLogout]);
 
-  // Load orders from localStorage and listen for new orders
+  // Load orders from localStorage and listen for new orders with real-time updates
   useEffect(() => {
     const loadOrders = () => {
       const savedOrders = localStorage.getItem('hotelOrders');
@@ -109,7 +163,22 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
           timestamp: new Date(order.timestamp),
           status: order.status === 'preparing' ? 'new' : order.status
         }));
+        
+        // Check for new orders
+        const currentOrderCount = parsedOrders.length;
+        if (currentOrderCount > lastOrderCount && lastOrderCount > 0) {
+          // New order detected!
+          playNotificationSound();
+          setNewOrderAlert(true);
+          
+          // Show alert for 3 seconds
+          setTimeout(() => {
+            setNewOrderAlert(false);
+          }, 3000);
+        }
+        
         setOrders(parsedOrders);
+        setLastOrderCount(currentOrderCount);
         
         // Count new orders for notifications
         const newOrdersCount = parsedOrders.filter((order: RestaurantOrder) => order.status === 'new').length;
@@ -120,11 +189,11 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
     // Load orders initially
     loadOrders();
 
-    // Set up interval to check for new orders
-    const interval = setInterval(loadOrders, 2000);
+    // Set up interval to check for new orders every second for real-time updates
+    const interval = setInterval(loadOrders, 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [lastOrderCount, soundEnabled]);
 
   const handleLogout = () => {
     localStorage.removeItem('managerLoginTime');
@@ -204,6 +273,22 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      {/* New Order Alert */}
+      {newOrderAlert && (
+        <div className="fixed top-4 right-4 z-50 bg-gradient-to-r from-red-500 to-red-600 text-white px-6 py-4 rounded-2xl shadow-2xl animate-bounce border-2 border-red-300">
+          <div className="flex items-center space-x-3">
+            <div className="relative">
+              <Bell className="h-6 w-6 animate-pulse" />
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-ping"></div>
+            </div>
+            <div>
+              <p className="font-bold text-lg">New Order Received!</p>
+              <p className="text-sm opacity-90">Check the dashboard for details</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="bg-white/95 backdrop-blur-md shadow-xl sticky top-0 z-40 border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -217,16 +302,30 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
                   Restaurant Manager
                 </h1>
-                <p className="text-sm text-gray-600">The Park Residency Kitchen</p>
+                <p className="text-sm text-gray-600 flex items-center">
+                  <span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
+                  Live Dashboard - Real-time Updates
+                </p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setSoundEnabled(!soundEnabled)}
+                className={`p-2 rounded-xl transition-all duration-300 ${
+                  soundEnabled 
+                    ? 'bg-green-100 text-green-600 hover:bg-green-200' 
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+                title={soundEnabled ? 'Sound On' : 'Sound Off'}
+              >
+                {soundEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+              </button>
               <div className="hidden md:flex items-center space-x-2 bg-green-50 px-3 py-2 rounded-full border border-green-200">
                 <Shield className="h-4 w-4 text-green-600" />
                 <span className="text-sm text-green-700 font-medium">Session: {sessionTimeLeft}</span>
               </div>
               <div className="relative">
-                <Bell className="h-6 w-6 text-gray-600" />
+                <Bell className={`h-6 w-6 text-gray-600 ${notifications > 0 ? 'animate-pulse' : ''}`} />
                 {notifications > 0 && (
                   <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs animate-bounce">
                     {notifications}
@@ -277,10 +376,12 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">New Orders</p>
-                  <p className="text-3xl font-bold text-red-600">{stats.newOrders}</p>
+                  <p className={`text-3xl font-bold ${stats.newOrders > 0 ? 'text-red-600 animate-pulse' : 'text-gray-900'}`}>
+                    {stats.newOrders}
+                  </p>
                 </div>
-                <div className="p-3 bg-red-100 rounded-full">
-                  <AlertCircle className="h-6 w-6 text-red-600" />
+                <div className={`p-3 rounded-full ${stats.newOrders > 0 ? 'bg-red-100 animate-pulse' : 'bg-red-100'}`}>
+                  <AlertCircle className={`h-6 w-6 ${stats.newOrders > 0 ? 'text-red-600' : 'text-red-600'}`} />
                 </div>
               </div>
             </div>
@@ -312,9 +413,10 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
                     className="pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
                   />
                 </div>
-                <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors duration-300">
-                  <RefreshCw className="h-5 w-5" />
-                </button>
+                <div className="flex items-center space-x-2 bg-green-50 px-3 py-2 rounded-full border border-green-200">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="text-sm text-green-700 font-medium">Auto-refresh: ON</span>
+                </div>
               </div>
               
               <div className="flex items-center space-x-2">
@@ -339,7 +441,11 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
             {filteredOrders.map((order) => (
               <div
                 key={order.id}
-                className="bg-white rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
+                className={`bg-white rounded-2xl shadow-lg border overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 ${
+                  order.status === 'new' 
+                    ? 'border-red-200 ring-2 ring-red-100 animate-pulse' 
+                    : 'border-gray-100'
+                }`}
               >
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-4">
@@ -347,7 +453,9 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
                       <h3 className="text-lg font-bold text-gray-900">Order #{order.id}</h3>
                       <p className="text-sm text-gray-600">{formatDate(order.timestamp)} at {formatTime(order.timestamp)}</p>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center space-x-1 ${getStatusColor(order.status)}`}>
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center space-x-1 ${getStatusColor(order.status)} ${
+                      order.status === 'new' ? 'animate-pulse' : ''
+                    }`}>
                       {getStatusIcon(order.status)}
                       <span>{order.status.toUpperCase()}</span>
                     </span>
