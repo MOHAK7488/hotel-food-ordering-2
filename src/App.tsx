@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Plus, Minus, Hotel, Utensils, Clock, MapPin, Phone, Mail, User, History, CreditCard, ExternalLink, Coffee, Star, Heart, ChefHat, Sparkles } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Hotel, Utensils, Clock, MapPin, Phone, Mail, User, History, CreditCard, ExternalLink, Coffee, Star, Heart, ChefHat, Sparkles, Settings } from 'lucide-react';
+import RestaurantManager from './components/RestaurantManager';
 
 interface MenuItem {
   id: number;
@@ -380,6 +381,7 @@ function App() {
   });
   const [showCart, setShowCart] = useState(false);
   const [showOrderHistory, setShowOrderHistory] = useState(false);
+  const [showManager, setShowManager] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [favorites, setFavorites] = useState<number[]>([]);
@@ -519,6 +521,11 @@ function App() {
 
   const filteredItems = menuItems.filter(item => item.category === activeCategory);
 
+  // Show Restaurant Manager if requested
+  if (showManager) {
+    return <RestaurantManager />;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Header */}
@@ -541,6 +548,13 @@ function App() {
               </div>
             </div>
             <div className="flex items-center space-x-3">
+              <button
+                onClick={() => setShowManager(true)}
+                className="bg-gradient-to-r from-purple-600 to-purple-700 text-white px-4 py-2 rounded-xl hover:from-purple-700 hover:to-purple-800 transition-all duration-300 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              >
+                <Settings className="h-4 w-4" />
+                <span className="hidden sm:inline">Manager</span>
+              </button>
               <a
                 href="https://www.hoteltheparkresidency.com/"
                 target="_blank"
