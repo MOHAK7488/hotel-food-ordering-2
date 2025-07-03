@@ -415,27 +415,38 @@ function App() {
     checkManagerAuth();
   }, []);
 
+  // Load data from localStorage and set up real-time updates
   useEffect(() => {
-    const savedCart = localStorage.getItem('hotelCart');
-    const savedOrders = localStorage.getItem('hotelOrders');
-    const savedCustomerDetails = localStorage.getItem('hotelCustomerDetails');
-    const savedFavorites = localStorage.getItem('hotelFavorites');
-    
-    if (savedCart) {
-      setCart(JSON.parse(savedCart));
-    }
-    if (savedOrders) {
-      setOrders(JSON.parse(savedOrders).map((order: any) => ({
-        ...order,
-        timestamp: new Date(order.timestamp)
-      })));
-    }
-    if (savedCustomerDetails) {
-      setCustomerDetails(JSON.parse(savedCustomerDetails));
-    }
-    if (savedFavorites) {
-      setFavorites(JSON.parse(savedFavorites));
-    }
+    const loadData = () => {
+      const savedCart = localStorage.getItem('hotelCart');
+      const savedOrders = localStorage.getItem('hotelOrders');
+      const savedCustomerDetails = localStorage.getItem('hotelCustomerDetails');
+      const savedFavorites = localStorage.getItem('hotelFavorites');
+      
+      if (savedCart) {
+        setCart(JSON.parse(savedCart));
+      }
+      if (savedOrders) {
+        setOrders(JSON.parse(savedOrders).map((order: any) => ({
+          ...order,
+          timestamp: new Date(order.timestamp)
+        })));
+      }
+      if (savedCustomerDetails) {
+        setCustomerDetails(JSON.parse(savedCustomerDetails));
+      }
+      if (savedFavorites) {
+        setFavorites(JSON.parse(savedFavorites));
+      }
+    };
+
+    // Load data initially
+    loadData();
+
+    // Set up interval to check for updates every second for real-time sync
+    const interval = setInterval(loadData, 1000);
+
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {

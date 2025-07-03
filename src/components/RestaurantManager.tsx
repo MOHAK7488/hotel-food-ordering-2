@@ -211,6 +211,11 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
     // Update notifications count
     const newOrdersCount = updatedOrders.filter(order => order.status === 'new').length;
     setNotifications(newOrdersCount);
+
+    // Update selected order if it's the one being modified
+    if (selectedOrder && selectedOrder.id === orderId) {
+      setSelectedOrder({ ...selectedOrder, status: newStatus });
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -644,7 +649,6 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
                     <button
                       onClick={() => {
                         updateOrderStatus(selectedOrder.id, 'preparing');
-                        setSelectedOrder({ ...selectedOrder, status: 'preparing' });
                       }}
                       className="flex-1 bg-gradient-to-r from-yellow-600 to-yellow-700 text-white py-3 px-4 rounded-xl hover:from-yellow-700 hover:to-yellow-800 transition-all duration-300 flex items-center justify-center space-x-2"
                     >
@@ -657,7 +661,6 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
                     <button
                       onClick={() => {
                         updateOrderStatus(selectedOrder.id, 'ready');
-                        setSelectedOrder({ ...selectedOrder, status: 'ready' });
                       }}
                       className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 flex items-center justify-center space-x-2"
                     >
@@ -670,7 +673,6 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
                     <button
                       onClick={() => {
                         updateOrderStatus(selectedOrder.id, 'delivered');
-                        setSelectedOrder({ ...selectedOrder, status: 'delivered' });
                       }}
                       className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-3 px-4 rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-300 flex items-center justify-center space-x-2"
                     >
