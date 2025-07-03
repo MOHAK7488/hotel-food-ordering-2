@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ShoppingCart, Plus, Minus, Hotel, Utensils, Clock, MapPin, Phone, Mail, User, History, CreditCard, ExternalLink, Coffee, Star, Heart, ChefHat, Sparkles, Settings } from 'lucide-react';
 import RestaurantManager from './components/RestaurantManager';
+import ManagerLogin from './components/ManagerLogin';
 
 interface MenuItem {
   id: number;
@@ -381,11 +382,38 @@ function App() {
   });
   const [showCart, setShowCart] = useState(false);
   const [showOrderHistory, setShowOrderHistory] = useState(false);
+  const [showManagerLogin, setShowManagerLogin] = useState(false);
   const [showManager, setShowManager] = useState(false);
+  const [isManagerAuthenticated, setIsManagerAuthenticated] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [favorites, setFavorites] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Check manager authentication on component mount
+  useEffect(() => {
+    const checkManagerAuth = () => {
+      const isAuthenticated = localStorage.getItem('managerAuthenticated');
+      const loginTime = localStorage.getItem('managerLoginTime');
+      
+      if (isAuthenticated && loginTime) {
+        const currentTime = new Date().getTime();
+        const sessionDuration = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
+        const elapsedTime = currentTime - parseInt(loginTime);
+        
+        if (elapsedTime < sessionDuration) {
+          setIsManagerAuthenticated(true);
+        } else {
+          // Session expired
+          localStorage.removeItem('managerAuthenticated');
+          localStorage.removeItem('managerLoginTime');
+          setIsManagerAuthenticated(false);
+        }
+      }
+    };
+
+    checkManagerAuth();
+  }, []);
 
   useEffect(() => {
     const savedCart = localStorage.getItem('hotelCart');
@@ -425,6 +453,27 @@ function App() {
   useEffect(() => {
     localStorage.setItem('hotelFavorites', JSON.stringify(favorites));
   }, [favorites]);
+
+  const handleManagerLogin = () => {
+    setIsManagerAuthenticated(true);
+    setShowManagerLogin(false);
+    setShowManager(true);
+  };
+
+  const handleManagerLogout = () => {
+    setIsManagerAuthenticated(false);
+    setShowManager(false);
+    localStorage.removeItem('managerAuthenticated');
+    localStorage.removeItem('managerLoginTime');
+  };
+
+  const handleManagerAccess = () => {
+    if (isManagerAuthenticated) {
+      setShowManager(true);
+    } else {
+      setShowManagerLogin(true);
+    }
+  };
 
   const addToCart = (item: MenuItem) => {
     setCart(prevCart => {
@@ -521,9 +570,14 @@ function App() {
 
   const filteredItems = menuItems.filter(item => item.category === activeCategory);
 
-  // Show Restaurant Manager if requested
-  if (showManager) {
-    return <RestaurantManager />;
+  // Show Manager Login if requested
+  if (showManagerLogin) {
+    return <ManagerLogin onLogin={handleManagerLogin} />;
+  }
+
+  // Show Restaurant Manager if authenticated and requested
+  if (showManager && isManagerAuthenticated) {
+    return <RestaurantManager onLogout={handleManagerLogout} />;
   }
 
   return (
@@ -549,7 +603,7 @@ function App() {
             </div>
             <div className="flex items-center space-x-3">
               <button
-                onClick={() => setShowManager(true)}
+                onClick={handleManagerAccess}
                 className="bg-gradient-to-r from-purple-600 to-purple-700 text-white px-4 py-2 rounded-xl hover:from-purple-700 hover:to-purple-800 transition-all duration-300 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
               >
                 <Settings className="h-4 w-4" />

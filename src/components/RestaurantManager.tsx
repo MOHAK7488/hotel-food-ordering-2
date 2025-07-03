@@ -19,7 +19,9 @@ import {
   AlertCircle,
   RefreshCw,
   Eye,
-  X
+  X,
+  LogOut,
+  Shield
 } from 'lucide-react';
 
 interface OrderItem {
@@ -48,12 +50,54 @@ interface RestaurantOrder {
   notes?: string;
 }
 
-const RestaurantManager: React.FC = () => {
+interface RestaurantManagerProps {
+  onLogout: () => void;
+}
+
+const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
   const [orders, setOrders] = useState<RestaurantOrder[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<RestaurantOrder | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [notifications, setNotifications] = useState<number>(0);
+  const [sessionTimeLeft, setSessionTimeLeft] = useState<string>('');
+
+  // Check session validity and calculate remaining time
+  useEffect(() => {
+    const checkSession = () => {
+      const loginTime = localStorage.getItem('managerLoginTime');
+      if (!loginTime) {
+        onLogout();
+        return;
+      }
+
+      const currentTime = new Date().getTime();
+      const sessionDuration = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
+      const elapsedTime = currentTime - parseInt(loginTime);
+      const remainingTime = sessionDuration - elapsedTime;
+
+      if (remainingTime <= 0) {
+        // Session expired
+        localStorage.removeItem('managerLoginTime');
+        localStorage.removeItem('managerAuthenticated');
+        onLogout();
+        return;
+      }
+
+      // Calculate hours and minutes remaining
+      const hoursLeft = Math.floor(remainingTime / (60 * 60 * 1000));
+      const minutesLeft = Math.floor((remainingTime % (60 * 60 * 1000)) / (60 * 1000));
+      setSessionTimeLeft(`${hoursLeft}h ${minutesLeft}m`);
+    };
+
+    // Check session immediately
+    checkSession();
+
+    // Check session every minute
+    const sessionInterval = setInterval(checkSession, 60000);
+
+    return () => clearInterval(sessionInterval);
+  }, [onLogout]);
 
   // Load orders from localStorage and listen for new orders
   useEffect(() => {
@@ -81,6 +125,12 @@ const RestaurantManager: React.FC = () => {
 
     return () => clearInterval(interval);
   }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('managerLoginTime');
+    localStorage.removeItem('managerAuthenticated');
+    onLogout();
+  };
 
   const updateOrderStatus = (orderId: string, newStatus: 'new' | 'preparing' | 'ready' | 'delivered') => {
     const updatedOrders = orders.map(order => 
@@ -171,6 +221,10 @@ const RestaurantManager: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center space-x-4">
+              <div className="hidden md:flex items-center space-x-2 bg-green-50 px-3 py-2 rounded-full border border-green-200">
+                <Shield className="h-4 w-4 text-green-600" />
+                <span className="text-sm text-green-700 font-medium">Session: {sessionTimeLeft}</span>
+              </div>
               <div className="relative">
                 <Bell className="h-6 w-6 text-gray-600" />
                 {notifications > 0 && (
@@ -179,8 +233,12 @@ const RestaurantManager: React.FC = () => {
                   </span>
                 )}
               </div>
-              <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors duration-300">
-                <Settings className="h-6 w-6" />
+              <button 
+                onClick={handleLogout}
+                className="bg-gradient-to-r from-red-600 to-red-700 text-white px-4 py-2 rounded-xl hover:from-red-700 hover:to-red-800 transition-all duration-300 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              >
+                <LogOut className="h-4 w-4" />
+                <span className="hidden sm:inline">Logout</span>
               </button>
             </div>
           </div>
