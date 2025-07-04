@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Lock, User, Eye, EyeOff, Shield, AlertCircle } from 'lucide-react';
+import { Lock, User, Eye, EyeOff, Shield, AlertCircle, ArrowLeft } from 'lucide-react';
 
 interface ManagerLoginProps {
   onLogin: () => void;
+  onBack: () => void;
 }
 
-const ManagerLogin: React.FC<ManagerLoginProps> = ({ onLogin }) => {
+const ManagerLogin: React.FC<ManagerLoginProps> = ({ onLogin, onBack }) => {
   const [credentials, setCredentials] = useState({
     username: '',
     password: ''
@@ -49,7 +50,14 @@ const ManagerLogin: React.FC<ManagerLoginProps> = ({ onLogin }) => {
       <div className="absolute inset-0 bg-black/20"></div>
       
       <div className="relative bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-8 w-full max-w-md border border-white/20">
-        <div className="text-center mb-8">
+        <button
+          onClick={onBack}
+          className="absolute top-4 left-4 p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-full transition-all duration-300"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+
+        <div className="text-center mb-8 mt-8">
           <div className="mx-auto w-16 h-16 bg-gradient-to-r from-blue-600 to-blue-700 rounded-full flex items-center justify-center mb-4">
             <Shield className="h-8 w-8 text-white" />
           </div>

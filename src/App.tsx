@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { ShoppingCart, Plus, Minus, Hotel, Utensils, Clock, MapPin, Phone, Mail, User, History, CreditCard, ExternalLink, Coffee, Star, Heart, ChefHat, Sparkles, Settings } from 'lucide-react';
 import RestaurantManager from './components/RestaurantManager';
 import ManagerLogin from './components/ManagerLogin';
+import UserLogin from './components/UserLogin';
+import UserDashboard from './components/UserDashboard';
 
 interface MenuItem {
   id: number;
@@ -384,7 +386,10 @@ function App() {
   const [showOrderHistory, setShowOrderHistory] = useState(false);
   const [showManagerLogin, setShowManagerLogin] = useState(false);
   const [showManager, setShowManager] = useState(false);
+  const [showUserLogin, setShowUserLogin] = useState(false);
+  const [showUserDashboard, setShowUserDashboard] = useState(false);
   const [isManagerAuthenticated, setIsManagerAuthenticated] = useState(false);
+  const [userMobile, setUserMobile] = useState<string>('');
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [favorites, setFavorites] = useState<number[]>([]);
@@ -486,6 +491,17 @@ function App() {
     }
   };
 
+  const handleUserLogin = (mobile: string) => {
+    setUserMobile(mobile);
+    setShowUserLogin(false);
+    setShowUserDashboard(true);
+  };
+
+  const handleUserLogout = () => {
+    setUserMobile('');
+    setShowUserDashboard(false);
+  };
+
   const addToCart = (item: MenuItem) => {
     setCart(prevCart => {
       const existingItem = prevCart.find(cartItem => cartItem.id === item.id);
@@ -583,12 +599,22 @@ function App() {
 
   // Show Manager Login if requested
   if (showManagerLogin) {
-    return <ManagerLogin onLogin={handleManagerLogin} />;
+    return <ManagerLogin onLogin={handleManagerLogin} onBack={() => setShowManagerLogin(false)} />;
   }
 
   // Show Restaurant Manager if authenticated and requested
   if (showManager && isManagerAuthenticated) {
     return <RestaurantManager onLogout={handleManagerLogout} />;
+  }
+
+  // Show User Login if requested
+  if (showUserLogin) {
+    return <UserLogin onLogin={handleUserLogin} onBack={() => setShowUserLogin(false)} />;
+  }
+
+  // Show User Dashboard if logged in
+  if (showUserDashboard && userMobile) {
+    return <UserDashboard userMobile={userMobile} onLogout={handleUserLogout} onBack={() => setShowUserDashboard(false)} />;
   }
 
   return (
@@ -619,6 +645,13 @@ function App() {
               >
                 <Settings className="h-4 w-4" />
                 <span className="hidden sm:inline">Manager</span>
+              </button>
+              <button
+                onClick={() => setShowUserLogin(true)}
+                className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white px-4 py-2 rounded-xl hover:from-indigo-700 hover:to-indigo-800 transition-all duration-300 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              >
+                <User className="h-4 w-4" />
+                <span className="hidden sm:inline">My Orders</span>
               </button>
               <a
                 href="https://www.hoteltheparkresidency.com/"
