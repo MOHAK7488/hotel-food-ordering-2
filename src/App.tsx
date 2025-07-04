@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Plus, Minus, Hotel, Utensils, Clock, MapPin, Phone, Mail, User, History, CreditCard, ExternalLink, Coffee, Star, Heart, ChefHat, Sparkles, Settings } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Hotel, Utensils, Clock, MapPin, Phone, Mail, User, History, CreditCard, ExternalLink, Coffee, Star, Heart, ChefHat, Sparkles, Settings, Lock } from 'lucide-react';
 import RestaurantManager from './components/RestaurantManager';
 import ManagerLogin from './components/ManagerLogin';
 import UserLogin from './components/UserLogin';
@@ -390,10 +390,12 @@ function App() {
   const [showUserDashboard, setShowUserDashboard] = useState(false);
   const [isManagerAuthenticated, setIsManagerAuthenticated] = useState(false);
   const [userMobile, setUserMobile] = useState<string>('');
+  const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [favorites, setFavorites] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
   // Check manager authentication on component mount
   useEffect(() => {
@@ -420,6 +422,34 @@ function App() {
     checkManagerAuth();
   }, []);
 
+  // Check user login status
+  useEffect(() => {
+    const savedUserMobile = localStorage.getItem('userMobile');
+    const userLoginTime = localStorage.getItem('userLoginTime');
+    
+    if (savedUserMobile && userLoginTime) {
+      const currentTime = new Date().getTime();
+      const sessionDuration = 24 * 60 * 60 * 1000; // 24 hours for user session
+      const elapsedTime = currentTime - parseInt(userLoginTime);
+      
+      if (elapsedTime < sessionDuration) {
+        setUserMobile(savedUserMobile);
+        setIsUserLoggedIn(true);
+        // Auto-populate customer details if user is logged in
+        setCustomerDetails(prev => ({
+          ...prev,
+          mobile: savedUserMobile
+        }));
+      } else {
+        // Session expired
+        localStorage.removeItem('userMobile');
+        localStorage.removeItem('userLoginTime');
+        setUserMobile('');
+        setIsUserLoggedIn(false);
+      }
+    }
+  }, []);
+
   // Load data from localStorage and set up real-time updates
   useEffect(() => {
     const loadData = () => {
@@ -428,7 +458,7 @@ function App() {
       const savedCustomerDetails = localStorage.getItem('hotelCustomerDetails');
       const savedFavorites = localStorage.getItem('hotelFavorites');
       
-      if (savedCart) {
+      if (savedCart && isUserLoggedIn) {
         setCart(JSON.parse(savedCart));
       }
       if (savedOrders) {
@@ -437,7 +467,7 @@ function App() {
           timestamp: new Date(order.timestamp)
         })));
       }
-      if (savedCustomerDetails) {
+      if (savedCustomerDetails && isUserLoggedIn) {
         setCustomerDetails(JSON.parse(savedCustomerDetails));
       }
       if (savedFavorites) {
@@ -452,19 +482,23 @@ function App() {
     const interval = setInterval(loadData, 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isUserLoggedIn]);
 
   useEffect(() => {
-    localStorage.setItem('hotelCart', JSON.stringify(cart));
-  }, [cart]);
+    if (isUserLoggedIn) {
+      localStorage.setItem('hotelCart', JSON.stringify(cart));
+    }
+  }, [cart, isUserLoggedIn]);
 
   useEffect(() => {
     localStorage.setItem('hotelOrders', JSON.stringify(orders));
   }, [orders]);
 
   useEffect(() => {
-    localStorage.setItem('hotelCustomerDetails', JSON.stringify(customerDetails));
-  }, [customerDetails]);
+    if (isUserLoggedIn) {
+      localStorage.setItem('hotelCustomerDetails', JSON.stringify(customerDetails));
+    }
+  }, [customerDetails, isUserLoggedIn]);
 
   useEffect(() => {
     localStorage.setItem('hotelFavorites', JSON.stringify(favorites));
@@ -493,16 +527,41 @@ function App() {
 
   const handleUserLogin = (mobile: string) => {
     setUserMobile(mobile);
+    setIsUserLoggedIn(true);
     setShowUserLogin(false);
     setShowUserDashboard(true);
+    
+    // Save user session
+    localStorage.setItem('userMobile', mobile);
+    localStorage.setItem('userLoginTime', new Date().getTime().toString());
+    
+    // Auto-populate customer details
+    setCustomerDetails(prev => ({
+      ...prev,
+      mobile: mobile
+    }));
   };
 
   const handleUserLogout = () => {
     setUserMobile('');
+    setIsUserLoggedIn(false);
     setShowUserDashboard(false);
+    setCart([]); // Clear cart on logout
+    setCustomerDetails({ name: '', mobile: '', roomNumber: '' }); // Clear customer details
+    
+    // Clear user session
+    localStorage.removeItem('userMobile');
+    localStorage.removeItem('userLoginTime');
+    localStorage.removeItem('hotelCart');
+    localStorage.removeItem('hotelCustomerDetails');
   };
 
   const addToCart = (item: MenuItem) => {
+    if (!isUserLoggedIn) {
+      setShowLoginPrompt(true);
+      return;
+    }
+
     setCart(prevCart => {
       const existingItem = prevCart.find(cartItem => cartItem.id === item.id);
       if (existingItem) {
@@ -541,6 +600,11 @@ function App() {
   };
 
   const placeOrder = async () => {
+    if (!isUserLoggedIn) {
+      setShowLoginPrompt(true);
+      return;
+    }
+
     if (customerDetails.name && customerDetails.mobile && customerDetails.roomNumber && cart.length > 0) {
       setIsLoading(true);
       
@@ -567,6 +631,14 @@ function App() {
         setShowCart(false);
       }, 3000);
     }
+  };
+
+  const handleCartClick = () => {
+    if (!isUserLoggedIn) {
+      setShowLoginPrompt(true);
+      return;
+    }
+    setShowCart(true);
   };
 
   const getStatusColor = (status: string) => {
@@ -646,13 +718,25 @@ function App() {
                 <Settings className="h-4 w-4" />
                 <span className="hidden sm:inline">Manager</span>
               </button>
-              <button
-                onClick={() => setShowUserLogin(true)}
-                className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white px-4 py-2 rounded-xl hover:from-indigo-700 hover:to-indigo-800 transition-all duration-300 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-              >
-                <User className="h-4 w-4" />
-                <span className="hidden sm:inline">My Orders</span>
-              </button>
+              
+              {isUserLoggedIn ? (
+                <button
+                  onClick={() => setShowUserDashboard(true)}
+                  className="bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-2 rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-300 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                >
+                  <User className="h-4 w-4" />
+                  <span className="hidden sm:inline">My Orders</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => setShowUserLogin(true)}
+                  className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white px-4 py-2 rounded-xl hover:from-indigo-700 hover:to-indigo-800 transition-all duration-300 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                >
+                  <User className="h-4 w-4" />
+                  <span className="hidden sm:inline">Login</span>
+                </button>
+              )}
+              
               <a
                 href="https://www.hoteltheparkresidency.com/"
                 target="_blank"
@@ -664,29 +748,56 @@ function App() {
                 <span className="sm:hidden">Book</span>
                 <ExternalLink className="h-4 w-4" />
               </a>
+              
+              {isUserLoggedIn && (
+                <button
+                  onClick={() => setShowOrderHistory(true)}
+                  className="bg-gradient-to-r from-gray-600 to-gray-700 text-white px-4 py-2 rounded-xl hover:from-gray-700 hover:to-gray-800 transition-all duration-300 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                >
+                  <History className="h-5 w-5" />
+                  <span>Orders</span>
+                </button>
+              )}
+              
               <button
-                onClick={() => setShowOrderHistory(true)}
-                className="bg-gradient-to-r from-gray-600 to-gray-700 text-white px-4 py-2 rounded-xl hover:from-gray-700 hover:to-gray-800 transition-all duration-300 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-              >
-                <History className="h-5 w-5" />
-                <span>Orders</span>
-              </button>
-              <button
-                onClick={() => setShowCart(true)}
+                onClick={handleCartClick}
                 className="relative bg-gradient-to-r from-amber-600 to-amber-700 text-white px-4 py-2 rounded-xl hover:from-amber-700 hover:to-amber-800 transition-all duration-300 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
               >
                 <ShoppingCart className="h-5 w-5" />
                 <span>Cart</span>
-                {cart.length > 0 && (
+                {cart.length > 0 && isUserLoggedIn && (
                   <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full h-6 w-6 flex items-center justify-center text-xs animate-bounce">
                     {cart.reduce((sum, item) => sum + item.quantity, 0)}
                   </span>
+                )}
+                {!isUserLoggedIn && (
+                  <Lock className="h-4 w-4 ml-1" />
                 )}
               </button>
             </div>
           </div>
         </div>
       </header>
+
+      {/* User Status Banner */}
+      {isUserLoggedIn && (
+        <div className="bg-gradient-to-r from-green-500 to-green-600 text-white py-2">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <User className="h-4 w-4" />
+                <span className="text-sm font-medium">Logged in as: +91 {userMobile}</span>
+              </div>
+              <button
+                onClick={handleUserLogout}
+                className="text-sm hover:text-green-200 transition-colors duration-300 flex items-center space-x-1"
+              >
+                <span>Logout</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-blue-900 via-blue-800 to-blue-700 text-white py-20 relative overflow-hidden">
@@ -715,19 +826,36 @@ function App() {
               </div>
             </div>
             
-            {/* Hotel Booking CTA in Hero */}
+            {/* Login CTA for non-logged in users */}
+            {!isUserLoggedIn && (
+              <div className="mt-8">
+                <button
+                  onClick={() => setShowUserLogin(true)}
+                  className="inline-flex items-center space-x-2 bg-gradient-to-r from-amber-600 to-amber-700 text-white px-8 py-4 rounded-2xl hover:from-amber-700 hover:to-amber-800 transition-all duration-300 text-lg font-semibold shadow-2xl hover:shadow-3xl transform hover:-translate-y-1"
+                >
+                  <User className="h-5 w-5" />
+                  <span>Login to Order Food</span>
+                  <Lock className="h-5 w-5" />
+                </button>
+                <p className="text-amber-200 mt-3 text-sm">
+                  Login with your mobile number to place orders
+                </p>
+              </div>
+            )}
+            
+            {/* Hotel Booking CTA */}
             <div className="mt-8">
               <a
                 href="https://www.hoteltheparkresidency.com/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center space-x-2 bg-gradient-to-r from-amber-600 to-amber-700 text-white px-8 py-4 rounded-2xl hover:from-amber-700 hover:to-amber-800 transition-all duration-300 text-lg font-semibold shadow-2xl hover:shadow-3xl transform hover:-translate-y-1"
+                className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-4 rounded-2xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 text-lg font-semibold shadow-2xl hover:shadow-3xl transform hover:-translate-y-1"
               >
                 <Hotel className="h-5 w-5" />
                 <span>Book Room / Check Availability</span>
                 <ExternalLink className="h-5 w-5" />
               </a>
-              <p className="text-amber-200 mt-3 text-sm">
+              <p className="text-blue-200 mt-3 text-sm">
                 Extend your stay or check room availability
               </p>
             </div>
@@ -792,6 +920,17 @@ function App() {
                       }`} 
                     />
                   </button>
+
+                  {/* Login Required Overlay */}
+                  {!isUserLoggedIn && (
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <div className="text-center text-white">
+                        <Lock className="h-8 w-8 mx-auto mb-2" />
+                        <p className="text-sm font-semibold">Login Required</p>
+                        <p className="text-xs">Login to add items</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="p-6">
@@ -823,10 +962,15 @@ function App() {
                     </span>
                     <button
                       onClick={() => addToCart(item)}
-                      className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-2 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                      disabled={!isUserLoggedIn}
+                      className={`px-6 py-2 rounded-xl transition-all duration-300 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${
+                        isUserLoggedIn 
+                          ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800' 
+                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      }`}
                     >
-                      <Plus className="h-4 w-4" />
-                      <span>Add</span>
+                      {!isUserLoggedIn ? <Lock className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                      <span>{!isUserLoggedIn ? 'Login' : 'Add'}</span>
                     </button>
                   </div>
                 </div>
@@ -895,8 +1039,43 @@ function App() {
         </div>
       </footer>
 
-      {/* Cart Modal */}
-      {showCart && (
+      {/* Login Prompt Modal */}
+      {showLoginPrompt && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-8 text-center max-w-md w-full shadow-2xl">
+            <div className="text-amber-600 mb-6">
+              <div className="mx-auto w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center">
+                <Lock className="h-8 w-8" />
+              </div>
+            </div>
+            <h3 className="text-2xl font-bold mb-4 text-gray-900">Login Required</h3>
+            <p className="text-gray-600 mb-6 leading-relaxed">
+              Please login with your mobile number to add items to cart and place orders.
+            </p>
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setShowLoginPrompt(false)}
+                className="flex-1 bg-gray-100 text-gray-700 py-3 px-4 rounded-xl hover:bg-gray-200 transition-all duration-300 font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowLoginPrompt(false);
+                  setShowUserLogin(true);
+                }}
+                className="flex-1 bg-gradient-to-r from-amber-600 to-amber-700 text-white py-3 px-4 rounded-xl hover:from-amber-700 hover:to-amber-800 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center space-x-2"
+              >
+                <User className="h-4 w-4" />
+                <span>Login Now</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cart Modal - Only show if user is logged in */}
+      {showCart && isUserLoggedIn && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-auto shadow-2xl">
             <div className="p-6">
@@ -972,8 +1151,9 @@ function App() {
                         type="tel"
                         value={customerDetails.mobile}
                         onChange={(e) => setCustomerDetails(prev => ({ ...prev, mobile: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 bg-gray-50"
                         placeholder="Enter your mobile number"
+                        disabled
                       />
                     </div>
                     <div>
@@ -1031,8 +1211,8 @@ function App() {
         </div>
       )}
 
-      {/* Order History Modal */}
-      {showOrderHistory && (
+      {/* Order History Modal - Only show if user is logged in */}
+      {showOrderHistory && isUserLoggedIn && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-auto shadow-2xl">
             <div className="p-6">
@@ -1048,7 +1228,7 @@ function App() {
                 </button>
               </div>
               
-              {orders.length === 0 ? (
+              {orders.filter(order => order.customerDetails.mobile === userMobile).length === 0 ? (
                 <div className="text-center py-12">
                   <History className="h-16 w-16 text-gray-300 mx-auto mb-4" />
                   <p className="text-gray-500 text-lg">No orders yet</p>
@@ -1056,7 +1236,7 @@ function App() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {orders.map((order) => (
+                  {orders.filter(order => order.customerDetails.mobile === userMobile).map((order) => (
                     <div key={order.id} className="border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-shadow duration-300">
                       <div className="flex justify-between items-start mb-4">
                         <div>
