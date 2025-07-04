@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Plus, Minus, Hotel, Utensils, Clock, MapPin, Phone, Mail, User, History, CreditCard, ExternalLink, Coffee, Star, Heart, ChefHat, Sparkles, Settings, Lock } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Hotel, Utensils, Clock, MapPin, Phone, Mail, User, History, CreditCard, ExternalLink, Coffee, Star, Heart, ChefHat, Sparkles, Settings, Lock, LogIn } from 'lucide-react';
 import RestaurantManager from './components/RestaurantManager';
 import ManagerLogin from './components/ManagerLogin';
 import UserLogin from './components/UserLogin';
@@ -390,12 +390,41 @@ function App() {
   const [showUserDashboard, setShowUserDashboard] = useState(false);
   const [isManagerAuthenticated, setIsManagerAuthenticated] = useState(false);
   const [userMobile, setUserMobile] = useState<string>('');
-  const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
+  const [isUserLoggedIn, setIsUserLoggedIn] = useState<boolean>(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [favorites, setFavorites] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+
+  // Check user authentication on component mount
+  useEffect(() => {
+    const checkUserAuth = () => {
+      const userLoginTime = localStorage.getItem('userLoginTime');
+      const savedUserMobile = localStorage.getItem('userMobile');
+      
+      if (userLoginTime && savedUserMobile) {
+        const currentTime = new Date().getTime();
+        const sessionDuration = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+        const elapsedTime = currentTime - parseInt(userLoginTime);
+        
+        if (elapsedTime < sessionDuration) {
+          setIsUserLoggedIn(true);
+          setUserMobile(savedUserMobile);
+          // Auto-populate mobile number in customer details
+          setCustomerDetails(prev => ({ ...prev, mobile: savedUserMobile }));
+        } else {
+          // Session expired
+          localStorage.removeItem('userLoginTime');
+          localStorage.removeItem('userMobile');
+          setIsUserLoggedIn(false);
+          setUserMobile('');
+        }
+      }
+    };
+
+    checkUserAuth();
+  }, []);
 
   // Check manager authentication on component mount
   useEffect(() => {
@@ -422,34 +451,6 @@ function App() {
     checkManagerAuth();
   }, []);
 
-  // Check user login status
-  useEffect(() => {
-    const savedUserMobile = localStorage.getItem('userMobile');
-    const userLoginTime = localStorage.getItem('userLoginTime');
-    
-    if (savedUserMobile && userLoginTime) {
-      const currentTime = new Date().getTime();
-      const sessionDuration = 24 * 60 * 60 * 1000; // 24 hours for user session
-      const elapsedTime = currentTime - parseInt(userLoginTime);
-      
-      if (elapsedTime < sessionDuration) {
-        setUserMobile(savedUserMobile);
-        setIsUserLoggedIn(true);
-        // Auto-populate customer details if user is logged in
-        setCustomerDetails(prev => ({
-          ...prev,
-          mobile: savedUserMobile
-        }));
-      } else {
-        // Session expired
-        localStorage.removeItem('userMobile');
-        localStorage.removeItem('userLoginTime');
-        setUserMobile('');
-        setIsUserLoggedIn(false);
-      }
-    }
-  }, []);
-
   // Load data from localStorage and set up real-time updates
   useEffect(() => {
     const loadData = () => {
@@ -458,7 +459,7 @@ function App() {
       const savedCustomerDetails = localStorage.getItem('hotelCustomerDetails');
       const savedFavorites = localStorage.getItem('hotelFavorites');
       
-      if (savedCart && isUserLoggedIn) {
+      if (savedCart) {
         setCart(JSON.parse(savedCart));
       }
       if (savedOrders) {
@@ -467,8 +468,14 @@ function App() {
           timestamp: new Date(order.timestamp)
         })));
       }
-      if (savedCustomerDetails && isUserLoggedIn) {
-        setCustomerDetails(JSON.parse(savedCustomerDetails));
+      if (savedCustomerDetails) {
+        const details = JSON.parse(savedCustomerDetails);
+        // Only load saved details if user is logged in, otherwise use logged-in user's mobile
+        if (isUserLoggedIn) {
+          setCustomerDetails({ ...details, mobile: userMobile });
+        } else {
+          setCustomerDetails(details);
+        }
       }
       if (savedFavorites) {
         setFavorites(JSON.parse(savedFavorites));
@@ -482,23 +489,19 @@ function App() {
     const interval = setInterval(loadData, 1000);
 
     return () => clearInterval(interval);
-  }, [isUserLoggedIn]);
+  }, [isUserLoggedIn, userMobile]);
 
   useEffect(() => {
-    if (isUserLoggedIn) {
-      localStorage.setItem('hotelCart', JSON.stringify(cart));
-    }
-  }, [cart, isUserLoggedIn]);
+    localStorage.setItem('hotelCart', JSON.stringify(cart));
+  }, [cart]);
 
   useEffect(() => {
     localStorage.setItem('hotelOrders', JSON.stringify(orders));
   }, [orders]);
 
   useEffect(() => {
-    if (isUserLoggedIn) {
-      localStorage.setItem('hotelCustomerDetails', JSON.stringify(customerDetails));
-    }
-  }, [customerDetails, isUserLoggedIn]);
+    localStorage.setItem('hotelCustomerDetails', JSON.stringify(customerDetails));
+  }, [customerDetails]);
 
   useEffect(() => {
     localStorage.setItem('hotelFavorites', JSON.stringify(favorites));
@@ -531,29 +534,28 @@ function App() {
     setShowUserLogin(false);
     setShowUserDashboard(true);
     
-    // Save user session
+    // Set login timestamp for session management
+    const loginTime = new Date().getTime();
+    localStorage.setItem('userLoginTime', loginTime.toString());
     localStorage.setItem('userMobile', mobile);
-    localStorage.setItem('userLoginTime', new Date().getTime().toString());
     
-    // Auto-populate customer details
-    setCustomerDetails(prev => ({
-      ...prev,
-      mobile: mobile
-    }));
+    // Auto-populate mobile number in customer details
+    setCustomerDetails(prev => ({ ...prev, mobile }));
   };
 
   const handleUserLogout = () => {
     setUserMobile('');
     setIsUserLoggedIn(false);
     setShowUserDashboard(false);
-    setCart([]); // Clear cart on logout
-    setCustomerDetails({ name: '', mobile: '', roomNumber: '' }); // Clear customer details
     
-    // Clear user session
-    localStorage.removeItem('userMobile');
+    // Clear user session data
     localStorage.removeItem('userLoginTime');
+    localStorage.removeItem('userMobile');
+    
+    // Clear cart and customer details for security
+    setCart([]);
+    setCustomerDetails({ name: '', mobile: '', roomNumber: '' });
     localStorage.removeItem('hotelCart');
-    localStorage.removeItem('hotelCustomerDetails');
   };
 
   const addToCart = (item: MenuItem) => {
@@ -605,7 +607,7 @@ function App() {
       return;
     }
 
-    if (customerDetails.name && customerDetails.mobile && customerDetails.roomNumber && cart.length > 0) {
+    if (customerDetails.name && customerDetails.roomNumber && cart.length > 0) {
       setIsLoading(true);
       
       // Simulate API call
@@ -614,7 +616,7 @@ function App() {
       const newOrder: Order = {
         id: Date.now().toString(),
         items: [...cart],
-        customerDetails: { ...customerDetails },
+        customerDetails: { ...customerDetails, mobile: userMobile }, // Use logged-in user's mobile
         total: getTotalPrice(),
         timestamp: new Date(),
         status: 'preparing',
@@ -631,14 +633,6 @@ function App() {
         setShowCart(false);
       }, 3000);
     }
-  };
-
-  const handleCartClick = () => {
-    if (!isUserLoggedIn) {
-      setShowLoginPrompt(true);
-      return;
-    }
-    setShowCart(true);
   };
 
   const getStatusColor = (status: string) => {
@@ -722,7 +716,7 @@ function App() {
               {isUserLoggedIn ? (
                 <button
                   onClick={() => setShowUserDashboard(true)}
-                  className="bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-2 rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-300 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                  className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white px-4 py-2 rounded-xl hover:from-indigo-700 hover:to-indigo-800 transition-all duration-300 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                 >
                   <User className="h-4 w-4" />
                   <span className="hidden sm:inline">My Orders</span>
@@ -732,7 +726,7 @@ function App() {
                   onClick={() => setShowUserLogin(true)}
                   className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white px-4 py-2 rounded-xl hover:from-indigo-700 hover:to-indigo-800 transition-all duration-300 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                 >
-                  <User className="h-4 w-4" />
+                  <LogIn className="h-4 w-4" />
                   <span className="hidden sm:inline">Login</span>
                 </button>
               )}
@@ -760,44 +754,45 @@ function App() {
               )}
               
               <button
-                onClick={handleCartClick}
+                onClick={() => {
+                  if (!isUserLoggedIn) {
+                    setShowLoginPrompt(true);
+                    return;
+                  }
+                  setShowCart(true);
+                }}
                 className="relative bg-gradient-to-r from-amber-600 to-amber-700 text-white px-4 py-2 rounded-xl hover:from-amber-700 hover:to-amber-800 transition-all duration-300 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
               >
-                <ShoppingCart className="h-5 w-5" />
+                {!isUserLoggedIn ? <Lock className="h-5 w-5" /> : <ShoppingCart className="h-5 w-5" />}
                 <span>Cart</span>
-                {cart.length > 0 && isUserLoggedIn && (
+                {isUserLoggedIn && cart.length > 0 && (
                   <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full h-6 w-6 flex items-center justify-center text-xs animate-bounce">
                     {cart.reduce((sum, item) => sum + item.quantity, 0)}
                   </span>
                 )}
-                {!isUserLoggedIn && (
-                  <Lock className="h-4 w-4 ml-1" />
-                )}
               </button>
             </div>
           </div>
+          
+          {/* User Status Banner */}
+          {isUserLoggedIn && (
+            <div className="pb-4">
+              <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-2 flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="text-green-700 font-medium">Logged in as +91 {userMobile}</span>
+                </div>
+                <button
+                  onClick={handleUserLogout}
+                  className="text-green-600 hover:text-green-800 text-sm font-medium transition-colors duration-300"
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </header>
-
-      {/* User Status Banner */}
-      {isUserLoggedIn && (
-        <div className="bg-gradient-to-r from-green-500 to-green-600 text-white py-2">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <User className="h-4 w-4" />
-                <span className="text-sm font-medium">Logged in as: +91 {userMobile}</span>
-              </div>
-              <button
-                onClick={handleUserLogout}
-                className="text-sm hover:text-green-200 transition-colors duration-300 flex items-center space-x-1"
-              >
-                <span>Logout</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-blue-900 via-blue-800 to-blue-700 text-white py-20 relative overflow-hidden">
@@ -826,19 +821,18 @@ function App() {
               </div>
             </div>
             
-            {/* Login CTA for non-logged in users */}
+            {/* Login CTA for non-logged users */}
             {!isUserLoggedIn && (
               <div className="mt-8">
                 <button
                   onClick={() => setShowUserLogin(true)}
                   className="inline-flex items-center space-x-2 bg-gradient-to-r from-amber-600 to-amber-700 text-white px-8 py-4 rounded-2xl hover:from-amber-700 hover:to-amber-800 transition-all duration-300 text-lg font-semibold shadow-2xl hover:shadow-3xl transform hover:-translate-y-1"
                 >
-                  <User className="h-5 w-5" />
+                  <LogIn className="h-5 w-5" />
                   <span>Login to Order Food</span>
-                  <Lock className="h-5 w-5" />
                 </button>
                 <p className="text-amber-200 mt-3 text-sm">
-                  Login with your mobile number to place orders
+                  Login with your mobile number to start ordering
                 </p>
               </div>
             )}
@@ -890,7 +884,23 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredItems.map((item) => (
-              <div key={item.id} className="group bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-100">
+              <div key={item.id} className="group bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-100 relative">
+                {/* Login overlay for non-logged users */}
+                {!isUserLoggedIn && (
+                  <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl">
+                    <div className="text-center text-white">
+                      <Lock className="h-12 w-12 mx-auto mb-3" />
+                      <p className="font-semibold text-lg mb-2">Login Required</p>
+                      <button
+                        onClick={() => setShowUserLogin(true)}
+                        className="bg-white text-gray-900 px-4 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors duration-300"
+                      >
+                        Login to Order
+                      </button>
+                    </div>
+                  </div>
+                )}
+                
                 <div className="relative overflow-hidden">
                   <img
                     src={item.image}
@@ -920,17 +930,6 @@ function App() {
                       }`} 
                     />
                   </button>
-
-                  {/* Login Required Overlay */}
-                  {!isUserLoggedIn && (
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <div className="text-center text-white">
-                        <Lock className="h-8 w-8 mx-auto mb-2" />
-                        <p className="text-sm font-semibold">Login Required</p>
-                        <p className="text-xs">Login to add items</p>
-                      </div>
-                    </div>
-                  )}
                 </div>
                 
                 <div className="p-6">
@@ -1042,9 +1041,9 @@ function App() {
       {/* Login Prompt Modal */}
       {showLoginPrompt && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-8 text-center max-w-md w-full shadow-2xl">
-            <div className="text-amber-600 mb-6">
-              <div className="mx-auto w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center">
+          <div className="bg-white rounded-2xl p-8 text-center max-w-sm w-full shadow-2xl">
+            <div className="text-blue-600 mb-6">
+              <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
                 <Lock className="h-8 w-8" />
               </div>
             </div>
@@ -1064,18 +1063,17 @@ function App() {
                   setShowLoginPrompt(false);
                   setShowUserLogin(true);
                 }}
-                className="flex-1 bg-gradient-to-r from-amber-600 to-amber-700 text-white py-3 px-4 rounded-xl hover:from-amber-700 hover:to-amber-800 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center space-x-2"
+                className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
               >
-                <User className="h-4 w-4" />
-                <span>Login Now</span>
+                Login Now
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Cart Modal - Only show if user is logged in */}
-      {showCart && isUserLoggedIn && (
+      {/* Cart Modal */}
+      {showCart && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-auto shadow-2xl">
             <div className="p-6">
@@ -1143,19 +1141,30 @@ function App() {
                         placeholder="Enter your full name"
                       />
                     </div>
+                    
+                    {/* Mobile Number - Read Only */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Mobile Number
                       </label>
-                      <input
-                        type="tel"
-                        value={customerDetails.mobile}
-                        onChange={(e) => setCustomerDetails(prev => ({ ...prev, mobile: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 bg-gray-50"
-                        placeholder="Enter your mobile number"
-                        disabled
-                      />
+                      <div className="relative">
+                        <input
+                          type="tel"
+                          value={`+91 ${userMobile}`}
+                          readOnly
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 text-gray-600 cursor-not-allowed"
+                        />
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-medium">
+                            Verified
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Using logged-in mobile number
+                      </p>
                     </div>
+                    
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Room Number
@@ -1189,7 +1198,7 @@ function App() {
                   
                   <button
                     onClick={placeOrder}
-                    disabled={!customerDetails.name || !customerDetails.mobile || !customerDetails.roomNumber || cart.length === 0 || isLoading}
+                    disabled={!customerDetails.name || !customerDetails.roomNumber || cart.length === 0 || isLoading}
                     className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-4 rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-300 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed font-semibold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none flex items-center justify-center space-x-2"
                   >
                     {isLoading ? (
@@ -1211,8 +1220,8 @@ function App() {
         </div>
       )}
 
-      {/* Order History Modal - Only show if user is logged in */}
-      {showOrderHistory && isUserLoggedIn && (
+      {/* Order History Modal */}
+      {showOrderHistory && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-auto shadow-2xl">
             <div className="p-6">
@@ -1228,7 +1237,7 @@ function App() {
                 </button>
               </div>
               
-              {orders.filter(order => order.customerDetails.mobile === userMobile).length === 0 ? (
+              {orders.length === 0 ? (
                 <div className="text-center py-12">
                   <History className="h-16 w-16 text-gray-300 mx-auto mb-4" />
                   <p className="text-gray-500 text-lg">No orders yet</p>
@@ -1236,7 +1245,7 @@ function App() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {orders.filter(order => order.customerDetails.mobile === userMobile).map((order) => (
+                  {orders.map((order) => (
                     <div key={order.id} className="border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-shadow duration-300">
                       <div className="flex justify-between items-start mb-4">
                         <div>

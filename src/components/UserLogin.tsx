@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Phone, Shield, ArrowLeft, AlertCircle, CheckCircle } from 'lucide-react';
+import { Phone, Shield, ArrowLeft, AlertCircle, CheckCircle, Info } from 'lucide-react';
 
 interface UserLoginProps {
   onLogin: (mobile: string) => void;
@@ -188,17 +188,25 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLogin, onBack }) => {
               </div>
             )}
 
+            {/* Demo Information */}
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-              <h4 className="font-semibold text-blue-900 mb-2 flex items-center">
-                <AlertCircle className="h-4 w-4 mr-2" />
-                Demo OTP
+              <h4 className="font-semibold text-blue-900 mb-3 flex items-center">
+                <Info className="h-4 w-4 mr-2" />
+                Demo Application - OTP Information
               </h4>
-              <p className="text-sm text-blue-800">
-                Use <strong>123456</strong> as OTP for demo purposes
-              </p>
-              <p className="text-xs text-blue-600 mt-1">
-                Generated OTP: <strong>{generatedOtp}</strong>
-              </p>
+              <div className="space-y-2 text-sm text-blue-800">
+                <p><strong>Why OTP isn't sent via SMS:</strong></p>
+                <ul className="list-disc list-inside space-y-1 text-xs">
+                  <li>This is a demo application for portfolio showcase</li>
+                  <li>Real SMS integration requires paid SMS gateway services</li>
+                  <li>Production apps use services like Twilio, AWS SNS, or local SMS providers</li>
+                  <li>For security, real OTPs expire in 5-10 minutes</li>
+                </ul>
+                <div className="mt-3 p-2 bg-blue-100 rounded-lg">
+                  <p className="font-semibold">Demo OTP: <span className="text-blue-600">123456</span></p>
+                  <p className="text-xs">Generated OTP: <span className="font-mono">{generatedOtp}</span></p>
+                </div>
+              </div>
             </div>
 
             <div className="flex space-x-3">
