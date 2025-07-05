@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Phone, LogOut, History, Clock, MapPin, Star, ArrowLeft, Calendar, Package, CreditCard } from 'lucide-react';
+import { User, Phone, LogOut, History, Clock, MapPin, Star, ArrowLeft, Calendar, Package, CreditCard, X } from 'lucide-react';
 
 interface OrderItem {
   id: number;
@@ -50,6 +50,9 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ userMobile, onLogout, onB
           order.customerDetails.mobile === userMobile
         );
         
+        // Sort by timestamp (newest first)
+        filteredOrders.sort((a: UserOrder, b: UserOrder) => b.timestamp.getTime() - a.timestamp.getTime());
+        
         setUserOrders(filteredOrders);
       }
       setIsLoading(false);
@@ -64,7 +67,9 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ userMobile, onLogout, onB
 
   const getStatusColor = (status: string) => {
     switch (status) {
+      case 'new':
       case 'preparing': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'ready':
       case 'on-the-way': return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'delivered': return 'bg-green-100 text-green-800 border-green-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
@@ -73,10 +78,22 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ userMobile, onLogout, onB
 
   const getStatusIcon = (status: string) => {
     switch (status) {
+      case 'new':
       case 'preparing': return '👨‍🍳';
+      case 'ready':
       case 'on-the-way': return '🚚';
       case 'delivered': return '✅';
       default: return '⏳';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'new': return 'NEW';
+      case 'preparing': return 'PREPARING';
+      case 'ready': return 'READY';
+      case 'delivered': return 'DELIVERED';
+      default: return status.toUpperCase();
     }
   };
 
@@ -89,20 +106,6 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ userMobile, onLogout, onB
       minute: '2-digit'
     });
   };
-
-  const getTotalSpent = () => {
-    return userOrders.reduce((total, order) => total + order.total, 0);
-  };
-
-  const getOrderStats = () => {
-    const total = userOrders.length;
-    const delivered = userOrders.filter(order => order.status === 'delivered').length;
-    const pending = userOrders.filter(order => order.status !== 'delivered').length;
-    
-    return { total, delivered, pending };
-  };
-
-  const stats = getOrderStats();
 
   if (isLoading) {
     return (
@@ -135,7 +138,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ userMobile, onLogout, onB
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                    My Orders
+                    My Order History
                   </h1>
                   <p className="text-sm text-gray-600 flex items-center">
                     <Phone className="h-3 w-3 mr-1" />
@@ -155,62 +158,9 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ userMobile, onLogout, onB
         </div>
       </header>
 
-      {/* Stats Section */}
+      {/* Orders Section */}
       <section className="py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total Orders</p>
-                  <p className="text-3xl font-bold text-gray-900">{stats.total}</p>
-                </div>
-                <div className="p-3 bg-blue-100 rounded-full">
-                  <History className="h-6 w-6 text-blue-600" />
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total Spent</p>
-                  <p className="text-3xl font-bold text-green-600">₹{getTotalSpent()}</p>
-                </div>
-                <div className="p-3 bg-green-100 rounded-full">
-                  <CreditCard className="h-6 w-6 text-green-600" />
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Delivered</p>
-                  <p className="text-3xl font-bold text-green-600">{stats.delivered}</p>
-                </div>
-                <div className="p-3 bg-green-100 rounded-full">
-                  <Package className="h-6 w-6 text-green-600" />
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Pending</p>
-                  <p className={`text-3xl font-bold ${stats.pending > 0 ? 'text-yellow-600' : 'text-gray-900'}`}>
-                    {stats.pending}
-                  </p>
-                </div>
-                <div className="p-3 bg-yellow-100 rounded-full">
-                  <Clock className="h-6 w-6 text-yellow-600" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Orders List */}
           {userOrders.length === 0 ? (
             <div className="text-center py-16">
               <History className="h-16 w-16 text-gray-300 mx-auto mb-4" />
@@ -224,65 +174,77 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ userMobile, onLogout, onB
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-              {userOrders.map((order) => (
-                <div
-                  key={order.id}
-                  className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2"
-                >
-                  <div className="p-6">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h3 className="text-lg font-bold text-gray-900">Order #{order.id}</h3>
-                        <p className="text-sm text-gray-600 flex items-center">
-                          <Calendar className="h-4 w-4 mr-1" />
-                          {formatDate(order.timestamp)}
-                        </p>
+            <>
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Your Orders ({userOrders.length})</h2>
+                <p className="text-gray-600">Track your order history and status updates</p>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                {userOrders.map((order) => (
+                  <div
+                    key={order.id}
+                    className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2"
+                  >
+                    <div className="p-6">
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <h3 className="text-lg font-bold text-gray-900">Order #{order.id}</h3>
+                          <p className="text-sm text-gray-600 flex items-center">
+                            <Calendar className="h-4 w-4 mr-1" />
+                            {formatDate(order.timestamp)}
+                          </p>
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center space-x-1 ${getStatusColor(order.status)}`}>
+                          <span>{getStatusIcon(order.status)}</span>
+                          <span>{getStatusText(order.status)}</span>
+                        </span>
                       </div>
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center space-x-1 ${getStatusColor(order.status)}`}>
-                        <span>{getStatusIcon(order.status)}</span>
-                        <span>{order.status.replace('-', ' ').toUpperCase()}</span>
-                      </span>
-                    </div>
 
-                    <div className="mb-4">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <MapPin className="h-4 w-4 text-gray-600" />
-                        <span className="text-gray-700">Room {order.customerDetails.roomNumber}</span>
+                      <div className="mb-4">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <MapPin className="h-4 w-4 text-gray-600" />
+                          <span className="text-gray-700">Room {order.customerDetails.roomNumber}</span>
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="mb-4">
-                      <h4 className="font-semibold text-gray-900 mb-2">Items ({order.items.length})</h4>
-                      <div className="space-y-1 max-h-32 overflow-y-auto">
-                        {order.items.map((item) => (
-                          <div key={item.id} className="flex justify-between text-sm bg-gray-50 p-2 rounded-lg">
-                            <span className="flex items-center space-x-2">
-                              <span className={`w-2 h-2 rounded-full ${item.veg ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                              <span>{item.name} x{item.quantity}</span>
-                            </span>
-                            <span className="font-semibold">₹{item.price * item.quantity}</span>
-                          </div>
-                        ))}
+                      <div className="mb-4">
+                        <h4 className="font-semibold text-gray-900 mb-2">Items ({order.items.length})</h4>
+                        <div className="space-y-1 max-h-32 overflow-y-auto">
+                          {order.items.slice(0, 3).map((item) => (
+                            <div key={item.id} className="flex justify-between text-sm bg-gray-50 p-2 rounded-lg">
+                              <span className="flex items-center space-x-2">
+                                <span className={`w-2 h-2 rounded-full ${item.veg ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                                <span>{item.name} x{item.quantity}</span>
+                              </span>
+                              <span className="font-semibold">₹{item.price * item.quantity}</span>
+                            </div>
+                          ))}
+                          {order.items.length > 3 && (
+                            <div className="text-xs text-gray-500 text-center py-1">
+                              +{order.items.length - 3} more items
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="flex justify-between items-center mb-4 p-3 bg-gradient-to-r from-amber-50 to-amber-100 rounded-xl">
-                      <span className="font-bold text-gray-900">Total</span>
-                      <span className="text-xl font-bold text-amber-600">₹{order.total}</span>
-                    </div>
+                      <div className="flex justify-between items-center mb-4 p-3 bg-gradient-to-r from-amber-50 to-amber-100 rounded-xl">
+                        <span className="font-bold text-gray-900">Total</span>
+                        <span className="text-xl font-bold text-amber-600">₹{order.total}</span>
+                      </div>
 
-                    <button
-                      onClick={() => setSelectedOrder(order)}
-                      className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-2 px-4 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                    >
-                      <History className="h-4 w-4" />
-                      <span>View Details</span>
-                    </button>
+                      <button
+                        onClick={() => setSelectedOrder(order)}
+                        className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-2 px-4 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                      >
+                        <History className="h-4 w-4" />
+                        <span>View Details</span>
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
       </section>
@@ -300,7 +262,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ userMobile, onLogout, onB
                   onClick={() => setSelectedOrder(null)}
                   className="text-gray-500 hover:text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors duration-300"
                 >
-                  ✕
+                  <X className="h-6 w-6" />
                 </button>
               </div>
 
@@ -315,11 +277,11 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ userMobile, onLogout, onB
                     <div>
                       <span className="text-gray-600">Status:</span>
                       <p className={`font-semibold flex items-center space-x-1 ${
-                        selectedOrder.status === 'preparing' ? 'text-yellow-600' : 
-                        selectedOrder.status === 'on-the-way' ? 'text-blue-600' : 'text-green-600'
+                        selectedOrder.status === 'preparing' || selectedOrder.status === 'new' ? 'text-yellow-600' : 
+                        selectedOrder.status === 'on-the-way' || selectedOrder.status === 'ready' ? 'text-blue-600' : 'text-green-600'
                       }`}>
                         <span>{getStatusIcon(selectedOrder.status)}</span>
-                        <span>{selectedOrder.status.replace('-', ' ').toUpperCase()}</span>
+                        <span>{getStatusText(selectedOrder.status)}</span>
                       </p>
                     </div>
                     <div>
