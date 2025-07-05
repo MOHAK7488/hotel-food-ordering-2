@@ -163,8 +163,7 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
       if (savedOrders) {
         const parsedOrders = JSON.parse(savedOrders).map((order: any) => ({
           ...order,
-          timestamp: new Date(order.timestamp),
-          status: order.status === 'preparing' ? 'new' : order.status
+          timestamp: new Date(order.timestamp)
         }));
         
         // Check for new orders
@@ -527,7 +526,11 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
                     
                     {order.status === 'new' && (
                       <button
-                        onClick={() => updateOrderStatus(order.id, 'preparing')}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          updateOrderStatus(order.id, 'preparing');
+                        }}
                         className="flex-1 bg-gradient-to-r from-yellow-600 to-yellow-700 text-white py-2 px-4 rounded-xl hover:from-yellow-700 hover:to-yellow-800 transition-all duration-300 flex items-center justify-center space-x-2"
                       >
                         <ChefHat className="h-4 w-4" />
@@ -537,7 +540,11 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
                     
                     {order.status === 'preparing' && (
                       <button
-                        onClick={() => updateOrderStatus(order.id, 'ready')}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          updateOrderStatus(order.id, 'ready');
+                        }}
                         className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-2 px-4 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 flex items-center justify-center space-x-2"
                       >
                         <Package className="h-4 w-4" />
@@ -547,7 +554,11 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
                     
                     {order.status === 'ready' && (
                       <button
-                        onClick={() => updateOrderStatus(order.id, 'delivered')}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          updateOrderStatus(order.id, 'delivered');
+                        }}
                         className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-2 px-4 rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-300 flex items-center justify-center space-x-2"
                       >
                         <Truck className="h-4 w-4" />
@@ -662,7 +673,9 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
                 <div className="flex space-x-3">
                   {selectedOrder.status === 'new' && (
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
                         updateOrderStatus(selectedOrder.id, 'preparing');
                       }}
                       className="flex-1 bg-gradient-to-r from-yellow-600 to-yellow-700 text-white py-3 px-4 rounded-xl hover:from-yellow-700 hover:to-yellow-800 transition-all duration-300 flex items-center justify-center space-x-2"
@@ -674,7 +687,9 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
                   
                   {selectedOrder.status === 'preparing' && (
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
                         updateOrderStatus(selectedOrder.id, 'ready');
                       }}
                       className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 flex items-center justify-center space-x-2"
@@ -686,7 +701,9 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
                   
                   {selectedOrder.status === 'ready' && (
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
                         updateOrderStatus(selectedOrder.id, 'delivered');
                       }}
                       className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-3 px-4 rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-300 flex items-center justify-center space-x-2"

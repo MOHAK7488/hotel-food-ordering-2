@@ -295,7 +295,7 @@ function App() {
       total: getCartTotal(),
       timestamp: new Date(),
       status: 'new',
-      paymentMethod: 'Cash on Delivery'
+      paymentMethod: 'Pay at checkout on reception using UPI, cash or card'
     };
 
     // Save order to localStorage
@@ -866,8 +866,8 @@ function App() {
                       <CreditCard className="h-5 w-5 text-blue-600" />
                       <span className="font-semibold text-blue-900">Payment Method</span>
                     </div>
-                    <p className="text-blue-800 text-sm">Cash on Delivery (COD)</p>
-                    <p className="text-blue-600 text-xs mt-1">Pay when your order arrives at your room</p>
+                    <p className="text-blue-800 text-sm font-medium">Pay at checkout on reception using UPI, cash or card</p>
+                    <p className="text-blue-600 text-xs mt-1">Complete payment when you collect your order at the reception</p>
                   </div>
 
                   <button
