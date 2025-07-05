@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChefHat, Phone, Shield, User, Clock, Star, MapPin, Plus, Minus, ShoppingCart, X, CreditCard, Utensils, Bed, Wifi, Car, Dumbbell } from 'lucide-react';
+import { ChefHat, Phone, Shield, User, Clock, Star, MapPin, Plus, Minus, ShoppingCart, X, CreditCard, Utensils, Bed, Wifi, Car, Dumbbell, ExternalLink } from 'lucide-react';
 import ManagerLogin from './components/ManagerLogin';
 import RestaurantManager from './components/RestaurantManager';
 import UserLogin from './components/UserLogin';
@@ -332,6 +332,10 @@ function App() {
     setCurrentView('home');
   };
 
+  const handleBookRoom = () => {
+    window.open('https://www.hoteltheparkresidency.com/', '_blank');
+  };
+
   // Home Page
   if (currentView === 'home') {
     return (
@@ -359,6 +363,14 @@ function App() {
                 >
                   <Utensils className="h-4 w-4" />
                   <span>Order Food</span>
+                </button>
+                <button
+                  onClick={handleBookRoom}
+                  className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-2 rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-300 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                >
+                  <Bed className="h-4 w-4" />
+                  <span>Book Room</span>
+                  <ExternalLink className="h-3 w-3" />
                 </button>
                 <button
                   onClick={() => setCurrentView('manager-login')}
