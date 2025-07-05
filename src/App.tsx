@@ -499,7 +499,7 @@ function App() {
               <div>
                 <h5 className="text-lg font-semibold mb-4">Contact Info</h5>
                 <div className="space-y-2 text-gray-400">
-                  <p>📍 123 Park Avenue, New Delhi</p>
+                  <p>📍 11/8/1, Tilak Nagar, Khurbura Mohalla, Dehradun, Uttarakhand 248001</p>
                   <p>📞 +91 11 1234 5678</p>
                   <p>✉️ info@parkresidency.com</p>
                 </div>
