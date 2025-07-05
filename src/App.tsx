@@ -507,9 +507,8 @@ function App() {
               <div>
                 <h5 className="text-lg font-semibold mb-4">Service Hours</h5>
                 <div className="space-y-2 text-gray-400">
-                  <p>🍽️ Room Service: 24/7</p>
+                  <p>🍽️ Room Service: 8:00 AM - 11:00 PM</p>
                   <p>💪 Gym: 5:00 AM - 11:00 PM</p>
-                  <p>🚗 Valet Parking: 24/7</p>
                 </div>
               </div>
             </div>
