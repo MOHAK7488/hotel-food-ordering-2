@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChefHat, Phone, Shield, User, Clock, Star, MapPin, Plus, Minus, ShoppingCart, X, CreditCard, Utensils, Bed, Coffee, Wifi, Car, Dumbbell, Waves } from 'lucide-react';
+import { ChefHat, Phone, Shield, User, Clock, Star, MapPin, Plus, Minus, ShoppingCart, X, CreditCard, Utensils, Bed, Wifi, Car, Dumbbell } from 'lucide-react';
 import ManagerLogin from './components/ManagerLogin';
 import RestaurantManager from './components/RestaurantManager';
 import UserLogin from './components/UserLogin';
@@ -450,7 +450,7 @@ function App() {
               </p>
             </div>
             
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <div className="text-center p-4 bg-white/80 backdrop-blur-sm rounded-xl shadow-lg hover:shadow-xl transition-all duration-300">
                 <Wifi className="h-8 w-8 text-blue-600 mx-auto mb-2" />
                 <p className="text-sm font-semibold text-gray-800">Free WiFi</p>
@@ -462,14 +462,6 @@ function App() {
               <div className="text-center p-4 bg-white/80 backdrop-blur-sm rounded-xl shadow-lg hover:shadow-xl transition-all duration-300">
                 <Dumbbell className="h-8 w-8 text-red-600 mx-auto mb-2" />
                 <p className="text-sm font-semibold text-gray-800">Fitness Center</p>
-              </div>
-              <div className="text-center p-4 bg-white/80 backdrop-blur-sm rounded-xl shadow-lg hover:shadow-xl transition-all duration-300">
-                <Waves className="h-8 w-8 text-blue-500 mx-auto mb-2" />
-                <p className="text-sm font-semibold text-gray-800">Swimming Pool</p>
-              </div>
-              <div className="text-center p-4 bg-white/80 backdrop-blur-sm rounded-xl shadow-lg hover:shadow-xl transition-all duration-300">
-                <Coffee className="h-8 w-8 text-amber-600 mx-auto mb-2" />
-                <p className="text-sm font-semibold text-gray-800">Coffee Shop</p>
               </div>
               <div className="text-center p-4 bg-white/80 backdrop-blur-sm rounded-xl shadow-lg hover:shadow-xl transition-all duration-300">
                 <Bed className="h-8 w-8 text-purple-600 mx-auto mb-2" />
@@ -504,8 +496,8 @@ function App() {
                 <h5 className="text-lg font-semibold mb-4">Service Hours</h5>
                 <div className="space-y-2 text-gray-400">
                   <p>🍽️ Room Service: 24/7</p>
-                  <p>🏊 Pool: 6:00 AM - 10:00 PM</p>
                   <p>💪 Gym: 5:00 AM - 11:00 PM</p>
+                  <p>🚗 Valet Parking: 24/7</p>
                 </div>
               </div>
             </div>
