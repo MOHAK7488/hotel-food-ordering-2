@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ChefHat, Phone, Shield, User, Clock, Star, MapPin, Plus, Minus, ShoppingCart, X, CreditCard, Utensils, Bed, Wifi, Car, Dumbbell, ExternalLink } from 'lucide-react';
 import ManagerLogin from './components/ManagerLogin';
 import RestaurantManager from './components/RestaurantManager';
-import UserLogin from './components/UserLogin';
-import UserDashboard from './components/UserDashboard';
+import OrderHistory from './components/OrderHistory';
 
 interface MenuItem {
   id: number;
@@ -202,9 +201,8 @@ const menuItems: MenuItem[] = [
 ];
 
 function App() {
-  const [currentView, setCurrentView] = useState<'home' | 'manager-login' | 'manager-dashboard' | 'user-login' | 'user-orders' | 'food-ordering'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'manager-login' | 'manager-dashboard' | 'order-history' | 'food-ordering'>('home');
   const [isManagerAuthenticated, setIsManagerAuthenticated] = useState(false);
-  const [userMobile, setUserMobile] = useState<string>('');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [showCart, setShowCart] = useState(false);
@@ -277,7 +275,7 @@ function App() {
   };
 
   const handlePlaceOrder = () => {
-    if (cart.length === 0) return;
+    if (cart.length === 0 || !customerDetails.name || !customerDetails.mobile || !customerDetails.roomNumber) return;
 
     const order = {
       id: Date.now().toString(),
@@ -288,10 +286,7 @@ function App() {
         price: item.price,
         veg: item.veg
       })),
-      customerDetails: {
-        ...customerDetails,
-        mobile: userMobile // Use logged-in user's mobile
-      },
+      customerDetails: customerDetails,
       total: getCartTotal(),
       timestamp: new Date(),
       status: 'new',
@@ -310,16 +305,6 @@ function App() {
     setCustomerDetails({ name: '', mobile: '', roomNumber: '' });
 
     alert('Order placed successfully! You will receive updates on your order status.');
-  };
-
-  const handleUserLogin = (mobile: string) => {
-    setUserMobile(mobile);
-    setCurrentView('food-ordering'); // Go directly to food ordering page
-  };
-
-  const handleUserLogout = () => {
-    setUserMobile('');
-    setCurrentView('home');
   };
 
   const handleManagerLogin = () => {
@@ -358,7 +343,7 @@ function App() {
               </div>
               <div className="flex items-center space-x-4">
                 <button
-                  onClick={() => setCurrentView('user-login')}
+                  onClick={() => setCurrentView('food-ordering')}
                   className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-2 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                 >
                   <Utensils className="h-4 w-4" />
@@ -371,6 +356,13 @@ function App() {
                   <Bed className="h-4 w-4" />
                   <span>Book Room</span>
                   <ExternalLink className="h-3 w-3" />
+                </button>
+                <button
+                  onClick={() => setCurrentView('order-history')}
+                  className="bg-gradient-to-r from-purple-600 to-purple-700 text-white px-6 py-2 rounded-xl hover:from-purple-700 hover:to-purple-800 transition-all duration-300 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                >
+                  <Clock className="h-4 w-4" />
+                  <span>Order History</span>
                 </button>
                 <button
                   onClick={() => setCurrentView('manager-login')}
@@ -536,23 +528,11 @@ function App() {
     return <RestaurantManager onLogout={handleManagerLogout} />;
   }
 
-  // User Login
-  if (currentView === 'user-login') {
+  // Order History
+  if (currentView === 'order-history') {
     return (
-      <UserLogin 
-        onLogin={handleUserLogin}
+      <OrderHistory 
         onBack={() => setCurrentView('home')}
-      />
-    );
-  }
-
-  // User Orders
-  if (currentView === 'user-orders') {
-    return (
-      <UserDashboard 
-        userMobile={userMobile}
-        onLogout={handleUserLogout}
-        onBack={() => setCurrentView('food-ordering')}
       />
     );
   }
@@ -574,19 +554,15 @@ function App() {
                   <h1 className="text-2xl font-bold bg-gradient-to-r from-amber-600 to-red-600 bg-clip-text text-transparent">
                     The Park Residency
                   </h1>
-                  <p className="text-sm text-gray-600 flex items-center">
-                    <Phone className="h-3 w-3 mr-1" />
-                    Welcome, +91 {userMobile}
-                  </p>
+                  <p className="text-sm text-gray-600">Room Service Menu</p>
                 </div>
               </div>
               <div className="flex items-center space-x-4">
                 <button
-                  onClick={() => setCurrentView('user-orders')}
-                  className="bg-gradient-to-r from-purple-600 to-purple-700 text-white px-4 py-2 rounded-xl hover:from-purple-700 hover:to-purple-800 transition-all duration-300 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                  onClick={() => setCurrentView('home')}
+                  className="bg-gradient-to-r from-gray-600 to-gray-700 text-white px-4 py-2 rounded-xl hover:from-gray-700 hover:to-gray-800 transition-all duration-300 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                 >
-                  <User className="h-4 w-4" />
-                  <span>My Orders</span>
+                  <span>Back to Home</span>
                 </button>
                 <button
                   onClick={() => setShowCart(true)}
@@ -599,12 +575,6 @@ function App() {
                       {getCartItemCount()}
                     </span>
                   )}
-                </button>
-                <button
-                  onClick={handleUserLogout}
-                  className="bg-gradient-to-r from-red-600 to-red-700 text-white px-4 py-2 rounded-xl hover:from-red-700 hover:to-red-800 transition-all duration-300 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                >
-                  <span>Logout</span>
                 </button>
               </div>
             </div>
@@ -815,23 +785,27 @@ function App() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Mobile Number
+                      Mobile Number *
                     </label>
                     <div className="relative">
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 font-medium">
+                        +91
+                      </span>
                       <input
                         type="tel"
-                        value={`+91 ${userMobile}`}
-                        className="w-full px-4 py-3 border border-green-300 rounded-xl bg-green-50 text-gray-700 cursor-not-allowed"
-                        disabled
+                        value={customerDetails.mobile}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, '');
+                          if (value.length <= 10) {
+                            setCustomerDetails(prev => ({ ...prev, mobile: value }));
+                          }
+                        }}
+                        className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-300"
+                        placeholder="Enter 10-digit mobile number"
+                        maxLength={10}
+                        required
                       />
-                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-2">
-                        <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-bold flex items-center space-x-1">
-                          <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                          <span>Verified</span>
-                        </span>
-                      </div>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">Using your logged-in mobile number</p>
                   </div>
 
                   <div>
@@ -875,7 +849,7 @@ function App() {
 
                   <button
                     type="submit"
-                    disabled={!customerDetails.name || !customerDetails.roomNumber}
+                    disabled={!customerDetails.name || !customerDetails.mobile || !customerDetails.roomNumber}
                     className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-3 px-4 rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-300 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none"
                   >
                     Place Order (₹{getCartTotal()})

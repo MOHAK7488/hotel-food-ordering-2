@@ -15,10 +15,10 @@ const ManagerLogin: React.FC<ManagerLoginProps> = ({ onLogin, onBack }) => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Manager credentials (in production, this would be handled by a secure backend)
+  // Manager credentials
   const MANAGER_CREDENTIALS = {
-    username: 'manager',
-    password: 'hotel123'
+    username: 'ashish',
+    password: 'hotel@321'
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -138,11 +138,11 @@ const ManagerLogin: React.FC<ManagerLoginProps> = ({ onLogin, onBack }) => {
         <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-xl">
           <h4 className="font-semibold text-blue-900 mb-2 flex items-center">
             <AlertCircle className="h-4 w-4 mr-2" />
-            Demo Credentials
+            Manager Credentials
           </h4>
           <div className="text-sm text-blue-800 space-y-1">
-            <p><strong>Username:</strong> manager</p>
-            <p><strong>Password:</strong> hotel123</p>
+            <p><strong>Username:</strong> ashish</p>
+            <p><strong>Password:</strong> hotel@321</p>
           </div>
           <p className="text-xs text-blue-600 mt-2">
             Session expires automatically after 12 hours
