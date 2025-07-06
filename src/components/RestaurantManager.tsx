@@ -69,6 +69,7 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [newOrderAlert, setNewOrderAlert] = useState<boolean>(false);
   const [showRoomBilling, setShowRoomBilling] = useState<boolean>(false);
+  const [lastOrderIds, setLastOrderIds] = useState<Set<string>>(new Set());
   
   // Audio context for notification sound
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -77,27 +78,53 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
   useEffect(() => {
     const initAudio = () => {
       try {
-        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+        // Create audio context on user interaction
+        const createAudioContext = () => {
+          if (!audioContextRef.current) {
+            audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+          }
+        };
+
+        // Add click listener to enable audio context
+        document.addEventListener('click', createAudioContext, { once: true });
+        document.addEventListener('touchstart', createAudioContext, { once: true });
+
+        return () => {
+          document.removeEventListener('click', createAudioContext);
+          document.removeEventListener('touchstart', createAudioContext);
+        };
       } catch (error) {
         console.log('Audio context not supported');
       }
     };
 
-    initAudio();
+    const cleanup = initAudio();
 
     return () => {
-      if (audioContextRef.current) {
+      if (cleanup) cleanup();
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
         audioContextRef.current.close();
       }
     };
   }, []);
 
   // Play notification sound
-  const playNotificationSound = () => {
-    if (!soundEnabled || !audioContextRef.current) return;
+  const playNotificationSound = async () => {
+    if (!soundEnabled) return;
 
     try {
+      // Ensure audio context is created and resumed
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+
       const context = audioContextRef.current;
+      
+      // Resume audio context if suspended
+      if (context.state === 'suspended') {
+        await context.resume();
+      }
+
       const oscillator = context.createOscillator();
       const gainNode = context.createGain();
 
@@ -116,6 +143,25 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
       oscillator.stop(context.currentTime + 0.3);
     } catch (error) {
       console.log('Error playing notification sound:', error);
+      
+      // Fallback: Try to play a simple beep using the Web Audio API
+      try {
+        const context = new AudioContext();
+        const oscillator = context.createOscillator();
+        const gainNode = context.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(context.destination);
+        
+        oscillator.frequency.value = 800;
+        gainNode.gain.setValueAtTime(0.3, context.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.2);
+        
+        oscillator.start();
+        oscillator.stop(context.currentTime + 0.2);
+      } catch (fallbackError) {
+        console.log('Fallback audio also failed:', fallbackError);
+      }
     }
   };
 
@@ -166,36 +212,45 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
           timestamp: new Date(order.timestamp)
         }));
         
-        // Check for new orders
-        const currentOrderCount = parsedOrders.length;
-        if (currentOrderCount > lastOrderCount && lastOrderCount > 0) {
-          // New order detected!
+        // Check for new orders by comparing order IDs
+        const currentOrderIds = new Set(parsedOrders.map((order: RestaurantOrder) => order.id));
+        const newOrderIds = [...currentOrderIds].filter(id => !lastOrderIds.has(id));
+        
+        // If there are new orders and we have previous orders, show notification
+        if (newOrderIds.length > 0 && lastOrderIds.size > 0) {
+          console.log('New orders detected:', newOrderIds);
           playNotificationSound();
           setNewOrderAlert(true);
           
-          // Show alert for 3 seconds
+          // Show alert for 5 seconds
           setTimeout(() => {
             setNewOrderAlert(false);
-          }, 3000);
+          }, 5000);
         }
         
+        // Update last order IDs
+        setLastOrderIds(currentOrderIds);
+        
         setOrders(parsedOrders);
-        setLastOrderCount(currentOrderCount);
+        setLastOrderCount(parsedOrders.length);
         
         // Count new orders for notifications
         const newOrdersCount = parsedOrders.filter((order: RestaurantOrder) => order.status === 'new').length;
         setNotifications(newOrdersCount);
+      } else {
+        setOrders([]);
+        setNotifications(0);
       }
     };
 
     // Load orders initially
     loadOrders();
 
-    // Set up interval to check for new orders every second for real-time updates
-    const interval = setInterval(loadOrders, 1000);
+    // Set up interval to check for new orders every 2 seconds for real-time updates
+    const interval = setInterval(loadOrders, 2000);
 
     return () => clearInterval(interval);
-  }, [lastOrderCount, soundEnabled]);
+  }, [lastOrderIds, soundEnabled]);
 
   const handleLogout = () => {
     localStorage.removeItem('managerLoginTime');
@@ -294,7 +349,7 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
               <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-ping"></div>
             </div>
             <div>
-              <p className="font-bold text-lg">New Order Received!</p>
+              <p className="font-bold text-lg">🔔 New Order Received!</p>
               <p className="text-sm opacity-90">Check the dashboard for details</p>
             </div>
           </div>
@@ -335,7 +390,7 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
                     ? 'bg-green-100 text-green-600 hover:bg-green-200' 
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
-                title={soundEnabled ? 'Sound On' : 'Sound Off'}
+                title={soundEnabled ? 'Sound On - Click to disable notifications' : 'Sound Off - Click to enable notifications'}
               >
                 {soundEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
               </button>
@@ -344,7 +399,7 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
                 <span className="text-sm text-green-700 font-medium">Session: {sessionTimeLeft}</span>
               </div>
               <div className="relative">
-                <Bell className={`h-6 w-6 text-gray-600 ${notifications > 0 ? 'animate-pulse' : ''}`} />
+                <Bell className={`h-6 w-6 text-gray-600 ${notifications > 0 ? 'animate-pulse text-red-600' : ''}`} />
                 {notifications > 0 && (
                   <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs animate-bounce">
                     {notifications}
@@ -487,7 +542,7 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
                     </div>
                     <div className="flex items-center space-x-2 mb-2">
                       <Phone className="h-4 w-4 text-gray-600" />
-                      <span className="text-gray-700">{order.customerDetails.mobile}</span>
+                      <span className="text-gray-700">+91 {order.customerDetails.mobile}</span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <MapPin className="h-4 w-4 text-gray-600" />
@@ -632,7 +687,7 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
                     </div>
                     <div className="flex items-center space-x-2">
                       <Phone className="h-4 w-4 text-gray-600" />
-                      <span>{selectedOrder.customerDetails.mobile}</span>
+                      <span>+91 {selectedOrder.customerDetails.mobile}</span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <MapPin className="h-4 w-4 text-gray-600" />
