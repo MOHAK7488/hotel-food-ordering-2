@@ -287,11 +287,11 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'new': return <AlertCircle className="h-4 w-4" />;
-      case 'preparing': return <ChefHat className="h-4 w-4" />;
-      case 'ready': return <Package className="h-4 w-4" />;
-      case 'delivered': return <CheckCircle className="h-4 w-4" />;
-      default: return <Clock className="h-4 w-4" />;
+      case 'new': return <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4" />;
+      case 'preparing': return <ChefHat className="h-3 w-3 sm:h-4 sm:w-4" />;
+      case 'ready': return <Package className="h-3 w-3 sm:h-4 sm:w-4" />;
+      case 'delivered': return <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4" />;
+      default: return <Clock className="h-3 w-3 sm:h-4 sm:w-4" />;
     }
   };
 
@@ -342,15 +342,15 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* New Order Alert */}
       {newOrderAlert && (
-        <div className="fixed top-4 right-4 z-50 bg-gradient-to-r from-red-500 to-red-600 text-white px-6 py-4 rounded-2xl shadow-2xl animate-bounce border-2 border-red-300">
-          <div className="flex items-center space-x-3">
+        <div className="fixed top-4 right-4 z-50 bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-3 sm:px-6 sm:py-4 rounded-2xl shadow-2xl animate-bounce border-2 border-red-300">
+          <div className="flex items-center space-x-2 sm:space-x-3">
             <div className="relative">
-              <Bell className="h-6 w-6 animate-pulse" />
-              <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-ping"></div>
+              <Bell className="h-5 w-5 sm:h-6 sm:w-6 animate-pulse" />
+              <div className="absolute -top-1 -right-1 w-2 h-2 sm:w-3 sm:h-3 bg-yellow-400 rounded-full animate-ping"></div>
             </div>
             <div>
-              <p className="font-bold text-lg">🔔 New Order Received!</p>
-              <p className="text-sm opacity-90">Check the dashboard for details</p>
+              <p className="font-bold text-sm sm:text-lg">🔔 New Order Received!</p>
+              <p className="text-xs sm:text-sm opacity-90">Check the dashboard for details</p>
             </div>
           </div>
         </div>
@@ -362,26 +362,27 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-3">
               <div className="relative">
-                <ChefHat className="h-8 w-8 text-amber-600" />
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                <ChefHat className="h-6 w-6 sm:h-8 sm:w-8 text-amber-600" />
+                <div className="absolute -top-1 -right-1 w-2 h-2 sm:w-3 sm:h-3 bg-green-500 rounded-full animate-pulse"></div>
               </div>
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                <h1 className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
                   Restaurant Manager
                 </h1>
-                <p className="text-sm text-gray-600 flex items-center">
-                  <span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
+                <p className="text-xs sm:text-sm text-gray-600 flex items-center">
+                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
                   Live Dashboard - Real-time Updates
                 </p>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 sm:space-x-4">
               <button
                 onClick={() => setShowRoomBilling(true)}
-                className="bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-2 rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-300 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                className="bg-gradient-to-r from-green-600 to-green-700 text-white px-2 py-2 sm:px-4 sm:py-2 rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-300 flex items-center space-x-1 sm:space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-xs sm:text-sm"
               >
-                <CreditCard className="h-4 w-4" />
+                <CreditCard className="h-3 w-3 sm:h-4 sm:w-4" />
                 <span className="hidden sm:inline">Room Bills</span>
+                <span className="sm:hidden">Bills</span>
               </button>
               <button
                 onClick={() => setSoundEnabled(!soundEnabled)}
@@ -392,25 +393,25 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
                 }`}
                 title={soundEnabled ? 'Sound On - Click to disable notifications' : 'Sound Off - Click to enable notifications'}
               >
-                {soundEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+                {soundEnabled ? <Volume2 className="h-4 w-4 sm:h-5 sm:w-5" /> : <VolumeX className="h-4 w-4 sm:h-5 sm:w-5" />}
               </button>
               <div className="hidden md:flex items-center space-x-2 bg-green-50 px-3 py-2 rounded-full border border-green-200">
-                <Shield className="h-4 w-4 text-green-600" />
-                <span className="text-sm text-green-700 font-medium">Session: {sessionTimeLeft}</span>
+                <Shield className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
+                <span className="text-xs sm:text-sm text-green-700 font-medium">Session: {sessionTimeLeft}</span>
               </div>
               <div className="relative">
-                <Bell className={`h-6 w-6 text-gray-600 ${notifications > 0 ? 'animate-pulse text-red-600' : ''}`} />
+                <Bell className={`h-5 w-5 sm:h-6 sm:w-6 text-gray-600 ${notifications > 0 ? 'animate-pulse text-red-600' : ''}`} />
                 {notifications > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs animate-bounce">
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center text-xs animate-bounce">
                     {notifications}
                   </span>
                 )}
               </div>
               <button 
                 onClick={handleLogout}
-                className="bg-gradient-to-r from-red-600 to-red-700 text-white px-4 py-2 rounded-xl hover:from-red-700 hover:to-red-800 transition-all duration-300 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                className="bg-gradient-to-r from-red-600 to-red-700 text-white px-2 py-2 sm:px-4 sm:py-2 rounded-xl hover:from-red-700 hover:to-red-800 transition-all duration-300 flex items-center space-x-1 sm:space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-xs sm:text-sm"
               >
-                <LogOut className="h-4 w-4" />
+                <LogOut className="h-3 w-3 sm:h-4 sm:w-4" />
                 <span className="hidden sm:inline">Logout</span>
               </button>
             </div>
@@ -419,86 +420,86 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
       </header>
 
       {/* Stats Dashboard */}
-      <section className="py-8">
+      <section className="py-6 sm:py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
+            <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Today's Orders</p>
-                  <p className="text-3xl font-bold text-gray-900">{stats.totalOrders}</p>
+                  <p className="text-xs sm:text-sm font-medium text-gray-600">Today's Orders</p>
+                  <p className="text-xl sm:text-3xl font-bold text-gray-900">{stats.totalOrders}</p>
                 </div>
-                <div className="p-3 bg-blue-100 rounded-full">
-                  <BarChart3 className="h-6 w-6 text-blue-600" />
+                <div className="p-2 sm:p-3 bg-blue-100 rounded-full">
+                  <BarChart3 className="h-4 w-4 sm:h-6 sm:w-6 text-blue-600" />
                 </div>
               </div>
             </div>
             
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+            <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Revenue</p>
-                  <p className="text-3xl font-bold text-gray-900">₹{stats.totalRevenue}</p>
+                  <p className="text-xs sm:text-sm font-medium text-gray-600">Revenue</p>
+                  <p className="text-xl sm:text-3xl font-bold text-gray-900">₹{stats.totalRevenue}</p>
                 </div>
-                <div className="p-3 bg-green-100 rounded-full">
-                  <DollarSign className="h-6 w-6 text-green-600" />
+                <div className="p-2 sm:p-3 bg-green-100 rounded-full">
+                  <DollarSign className="h-4 w-4 sm:h-6 sm:w-6 text-green-600" />
                 </div>
               </div>
             </div>
             
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+            <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">New Orders</p>
-                  <p className={`text-3xl font-bold ${stats.newOrders > 0 ? 'text-red-600 animate-pulse' : 'text-gray-900'}`}>
+                  <p className="text-xs sm:text-sm font-medium text-gray-600">New Orders</p>
+                  <p className={`text-xl sm:text-3xl font-bold ${stats.newOrders > 0 ? 'text-red-600 animate-pulse' : 'text-gray-900'}`}>
                     {stats.newOrders}
                   </p>
                 </div>
-                <div className={`p-3 rounded-full ${stats.newOrders > 0 ? 'bg-red-100 animate-pulse' : 'bg-red-100'}`}>
-                  <AlertCircle className={`h-6 w-6 ${stats.newOrders > 0 ? 'text-red-600' : 'text-red-600'}`} />
+                <div className={`p-2 sm:p-3 rounded-full ${stats.newOrders > 0 ? 'bg-red-100 animate-pulse' : 'bg-red-100'}`}>
+                  <AlertCircle className={`h-4 w-4 sm:h-6 sm:w-6 ${stats.newOrders > 0 ? 'text-red-600' : 'text-red-600'}`} />
                 </div>
               </div>
             </div>
             
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+            <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Completed</p>
-                  <p className="text-3xl font-bold text-green-600">{stats.completedOrders}</p>
+                  <p className="text-xs sm:text-sm font-medium text-gray-600">Completed</p>
+                  <p className="text-xl sm:text-3xl font-bold text-green-600">{stats.completedOrders}</p>
                 </div>
-                <div className="p-3 bg-green-100 rounded-full">
-                  <CheckCircle className="h-6 w-6 text-green-600" />
+                <div className="p-2 sm:p-3 bg-green-100 rounded-full">
+                  <CheckCircle className="h-4 w-4 sm:h-6 sm:w-6 text-green-600" />
                 </div>
               </div>
             </div>
           </div>
 
           {/* Filters and Search */}
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 mb-8">
+          <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-100 mb-6 sm:mb-8">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
-              <div className="flex items-center space-x-4">
-                <div className="relative">
-                  <Search className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+              <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+                <div className="relative w-full sm:w-auto">
+                  <Search className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                   <input
                     type="text"
                     placeholder="Search orders..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                    className="pl-8 sm:pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 w-full sm:w-auto text-sm sm:text-base"
                   />
                 </div>
                 <div className="flex items-center space-x-2 bg-green-50 px-3 py-2 rounded-full border border-green-200">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-sm text-green-700 font-medium">Auto-refresh: ON</span>
+                  <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="text-xs sm:text-sm text-green-700 font-medium">Auto-refresh: ON</span>
                 </div>
               </div>
               
               <div className="flex items-center space-x-2">
-                <Filter className="h-5 w-5 text-gray-600" />
+                <Filter className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600" />
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                  className="border border-gray-300 rounded-xl px-3 py-2 sm:px-4 sm:py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 text-xs sm:text-sm"
                 >
                   <option value="all">All Orders</option>
                   <option value="new">New Orders</option>
@@ -511,7 +512,7 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
           </div>
 
           {/* Orders List */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
             {filteredOrders.map((order) => (
               <div
                 key={order.id}
@@ -521,13 +522,13 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
                     : 'border-gray-100'
                 }`}
               >
-                <div className="p-6">
+                <div className="p-4 sm:p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <h3 className="text-lg font-bold text-gray-900">Order #{order.id}</h3>
-                      <p className="text-sm text-gray-600">{formatDate(order.timestamp)} at {formatTime(order.timestamp)}</p>
+                      <h3 className="text-base sm:text-lg font-bold text-gray-900">Order #{order.id}</h3>
+                      <p className="text-xs sm:text-sm text-gray-600">{formatDate(order.timestamp)} at {formatTime(order.timestamp)}</p>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center space-x-1 ${getStatusColor(order.status)} ${
+                    <span className={`px-2 py-1 sm:px-3 sm:py-1 rounded-full text-xs font-bold border flex items-center space-x-1 ${getStatusColor(order.status)} ${
                       order.status === 'new' ? 'animate-pulse' : ''
                     }`}>
                       {getStatusIcon(order.status)}
@@ -537,26 +538,26 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
 
                   <div className="mb-4">
                     <div className="flex items-center space-x-2 mb-2">
-                      <User className="h-4 w-4 text-gray-600" />
-                      <span className="font-semibold text-gray-900">{order.customerDetails.name}</span>
+                      <User className="h-3 w-3 sm:h-4 sm:w-4 text-gray-600" />
+                      <span className="font-semibold text-gray-900 text-sm sm:text-base">{order.customerDetails.name}</span>
                     </div>
                     <div className="flex items-center space-x-2 mb-2">
-                      <Phone className="h-4 w-4 text-gray-600" />
-                      <span className="text-gray-700">+91 {order.customerDetails.mobile}</span>
+                      <Phone className="h-3 w-3 sm:h-4 sm:w-4 text-gray-600" />
+                      <span className="text-gray-700 text-sm sm:text-base">+91 {order.customerDetails.mobile}</span>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <MapPin className="h-4 w-4 text-gray-600" />
-                      <span className="text-gray-700">Room {order.customerDetails.roomNumber}</span>
+                      <MapPin className="h-3 w-3 sm:h-4 sm:w-4 text-gray-600" />
+                      <span className="text-gray-700 text-sm sm:text-base">Room {order.customerDetails.roomNumber}</span>
                     </div>
                   </div>
 
                   <div className="mb-4">
-                    <h4 className="font-semibold text-gray-900 mb-2">Items ({order.items.length})</h4>
-                    <div className="space-y-1 max-h-32 overflow-y-auto">
+                    <h4 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Items ({order.items.length})</h4>
+                    <div className="space-y-1 max-h-24 sm:max-h-32 overflow-y-auto">
                       {order.items.map((item) => (
-                        <div key={item.id} className="flex justify-between text-sm bg-gray-50 p-2 rounded-lg">
+                        <div key={item.id} className="flex justify-between text-xs sm:text-sm bg-gray-50 p-2 rounded-lg">
                           <span className="flex items-center space-x-2">
-                            <span className={`w-2 h-2 rounded-full ${item.veg ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                            <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${item.veg ? 'bg-green-500' : 'bg-red-500'}`}></span>
                             <span>{item.name} x{item.quantity}</span>
                           </span>
                           <span className="font-semibold">₹{item.price * item.quantity}</span>
@@ -565,17 +566,17 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
                     </div>
                   </div>
 
-                  <div className="flex justify-between items-center mb-4 p-3 bg-gradient-to-r from-amber-50 to-amber-100 rounded-xl">
-                    <span className="font-bold text-gray-900">Total</span>
-                    <span className="text-xl font-bold text-amber-600">₹{order.total}</span>
+                  <div className="flex justify-between items-center mb-4 p-2 sm:p-3 bg-gradient-to-r from-amber-50 to-amber-100 rounded-xl">
+                    <span className="font-bold text-gray-900 text-sm sm:text-base">Total</span>
+                    <span className="text-lg sm:text-xl font-bold text-amber-600">₹{order.total}</span>
                   </div>
 
                   <div className="flex space-x-2">
                     <button
                       onClick={() => setSelectedOrder(order)}
-                      className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-2 px-4 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 flex items-center justify-center space-x-2"
+                      className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-2 px-3 sm:px-4 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 flex items-center justify-center space-x-1 sm:space-x-2 text-xs sm:text-sm"
                     >
-                      <Eye className="h-4 w-4" />
+                      <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
                       <span>View</span>
                     </button>
                     
@@ -586,9 +587,9 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
                           e.stopPropagation();
                           updateOrderStatus(order.id, 'preparing');
                         }}
-                        className="flex-1 bg-gradient-to-r from-yellow-600 to-yellow-700 text-white py-2 px-4 rounded-xl hover:from-yellow-700 hover:to-yellow-800 transition-all duration-300 flex items-center justify-center space-x-2"
+                        className="flex-1 bg-gradient-to-r from-yellow-600 to-yellow-700 text-white py-2 px-3 sm:px-4 rounded-xl hover:from-yellow-700 hover:to-yellow-800 transition-all duration-300 flex items-center justify-center space-x-1 sm:space-x-2 text-xs sm:text-sm"
                       >
-                        <ChefHat className="h-4 w-4" />
+                        <ChefHat className="h-3 w-3 sm:h-4 sm:w-4" />
                         <span>Start</span>
                       </button>
                     )}
@@ -600,9 +601,9 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
                           e.stopPropagation();
                           updateOrderStatus(order.id, 'ready');
                         }}
-                        className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-2 px-4 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 flex items-center justify-center space-x-2"
+                        className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-2 px-3 sm:px-4 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 flex items-center justify-center space-x-1 sm:space-x-2 text-xs sm:text-sm"
                       >
-                        <Package className="h-4 w-4" />
+                        <Package className="h-3 w-3 sm:h-4 sm:w-4" />
                         <span>Ready</span>
                       </button>
                     )}
@@ -614,9 +615,9 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
                           e.stopPropagation();
                           updateOrderStatus(order.id, 'delivered');
                         }}
-                        className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-2 px-4 rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-300 flex items-center justify-center space-x-2"
+                        className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-2 px-3 sm:px-4 rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-300 flex items-center justify-center space-x-1 sm:space-x-2 text-xs sm:text-sm"
                       >
-                        <Truck className="h-4 w-4" />
+                        <Truck className="h-3 w-3 sm:h-4 sm:w-4" />
                         <span>Deliver</span>
                       </button>
                     )}
@@ -628,9 +629,9 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
 
           {filteredOrders.length === 0 && (
             <div className="text-center py-12">
-              <ChefHat className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 text-lg">No orders found</p>
-              <p className="text-gray-400 text-sm mt-2">Orders will appear here when customers place them</p>
+              <ChefHat className="h-12 w-12 sm:h-16 sm:w-16 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500 text-base sm:text-lg">No orders found</p>
+              <p className="text-gray-400 text-xs sm:text-sm mt-2">Orders will appear here when customers place them</p>
             </div>
           )}
         </div>
@@ -640,23 +641,23 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
       {selectedOrder && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-auto shadow-2xl">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+            <div className="p-4 sm:p-6">
+              <div className="flex justify-between items-center mb-4 sm:mb-6">
+                <h3 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
                   Order Details
                 </h3>
                 <button
                   onClick={() => setSelectedOrder(null)}
                   className="text-gray-500 hover:text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors duration-300"
                 >
-                  <X className="h-6 w-6" />
+                  <X className="h-5 w-5 sm:h-6 sm:w-6" />
                 </button>
               </div>
 
-              <div className="space-y-6">
-                <div className="bg-gray-50 p-4 rounded-xl">
-                  <h4 className="font-semibold text-gray-900 mb-3">Order Information</h4>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="space-y-4 sm:space-y-6">
+                <div className="bg-gray-50 p-3 sm:p-4 rounded-xl">
+                  <h4 className="font-semibold text-gray-900 mb-3 text-sm sm:text-base">Order Information</h4>
+                  <div className="grid grid-cols-2 gap-4 text-xs sm:text-sm">
                     <div>
                       <span className="text-gray-600">Order ID:</span>
                       <p className="font-semibold">#{selectedOrder.id}</p>
@@ -678,51 +679,51 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
                   </div>
                 </div>
 
-                <div className="bg-gray-50 p-4 rounded-xl">
-                  <h4 className="font-semibold text-gray-900 mb-3">Customer Details</h4>
+                <div className="bg-gray-50 p-3 sm:p-4 rounded-xl">
+                  <h4 className="font-semibold text-gray-900 mb-3 text-sm sm:text-base">Customer Details</h4>
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2">
-                      <User className="h-4 w-4 text-gray-600" />
-                      <span className="font-semibold">{selectedOrder.customerDetails.name}</span>
+                      <User className="h-3 w-3 sm:h-4 sm:w-4 text-gray-600" />
+                      <span className="font-semibold text-sm sm:text-base">{selectedOrder.customerDetails.name}</span>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Phone className="h-4 w-4 text-gray-600" />
-                      <span>+91 {selectedOrder.customerDetails.mobile}</span>
+                      <Phone className="h-3 w-3 sm:h-4 sm:w-4 text-gray-600" />
+                      <span className="text-sm sm:text-base">+91 {selectedOrder.customerDetails.mobile}</span>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <MapPin className="h-4 w-4 text-gray-600" />
-                      <span>Room {selectedOrder.customerDetails.roomNumber}</span>
+                      <MapPin className="h-3 w-3 sm:h-4 sm:w-4 text-gray-600" />
+                      <span className="text-sm sm:text-base">Room {selectedOrder.customerDetails.roomNumber}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-gray-50 p-4 rounded-xl">
-                  <h4 className="font-semibold text-gray-900 mb-3">Order Items</h4>
+                <div className="bg-gray-50 p-3 sm:p-4 rounded-xl">
+                  <h4 className="font-semibold text-gray-900 mb-3 text-sm sm:text-base">Order Items</h4>
                   <div className="space-y-2">
                     {selectedOrder.items.map((item) => (
-                      <div key={item.id} className="flex justify-between items-center bg-white p-3 rounded-lg">
-                        <div className="flex items-center space-x-3">
-                          <span className={`w-3 h-3 rounded-full ${item.veg ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                      <div key={item.id} className="flex justify-between items-center bg-white p-2 sm:p-3 rounded-lg">
+                        <div className="flex items-center space-x-2 sm:space-x-3">
+                          <span className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${item.veg ? 'bg-green-500' : 'bg-red-500'}`}></span>
                           <div>
-                            <p className="font-semibold">{item.name}</p>
-                            <p className="text-sm text-gray-600">₹{item.price} each</p>
+                            <p className="font-semibold text-sm sm:text-base">{item.name}</p>
+                            <p className="text-xs sm:text-sm text-gray-600">₹{item.price} each</p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-semibold">x{item.quantity}</p>
-                          <p className="text-sm text-gray-600">₹{item.price * item.quantity}</p>
+                          <p className="font-semibold text-sm sm:text-base">x{item.quantity}</p>
+                          <p className="text-xs sm:text-sm text-gray-600">₹{item.price * item.quantity}</p>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-r from-amber-50 to-amber-100 p-4 rounded-xl border border-amber-200">
+                <div className="bg-gradient-to-r from-amber-50 to-amber-100 p-3 sm:p-4 rounded-xl border border-amber-200">
                   <div className="flex justify-between items-center">
-                    <span className="text-lg font-bold text-gray-900">Total Amount</span>
-                    <span className="text-2xl font-bold text-amber-600">₹{selectedOrder.total}</span>
+                    <span className="text-base sm:text-lg font-bold text-gray-900">Total Amount</span>
+                    <span className="text-xl sm:text-2xl font-bold text-amber-600">₹{selectedOrder.total}</span>
                   </div>
-                  <p className="text-sm text-gray-600 mt-1">Payment: {selectedOrder.paymentMethod}</p>
+                  <p className="text-xs sm:text-sm text-gray-600 mt-1">Payment: {selectedOrder.paymentMethod}</p>
                 </div>
 
                 <div className="flex space-x-3">
@@ -733,9 +734,9 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
                         e.stopPropagation();
                         updateOrderStatus(selectedOrder.id, 'preparing');
                       }}
-                      className="flex-1 bg-gradient-to-r from-yellow-600 to-yellow-700 text-white py-3 px-4 rounded-xl hover:from-yellow-700 hover:to-yellow-800 transition-all duration-300 flex items-center justify-center space-x-2"
+                      className="flex-1 bg-gradient-to-r from-yellow-600 to-yellow-700 text-white py-2 sm:py-3 px-3 sm:px-4 rounded-xl hover:from-yellow-700 hover:to-yellow-800 transition-all duration-300 flex items-center justify-center space-x-1 sm:space-x-2 text-sm sm:text-base"
                     >
-                      <ChefHat className="h-5 w-5" />
+                      <ChefHat className="h-4 w-4 sm:h-5 sm:w-5" />
                       <span>Start Preparing</span>
                     </button>
                   )}
@@ -747,9 +748,9 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
                         e.stopPropagation();
                         updateOrderStatus(selectedOrder.id, 'ready');
                       }}
-                      className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 flex items-center justify-center space-x-2"
+                      className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-2 sm:py-3 px-3 sm:px-4 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 flex items-center justify-center space-x-1 sm:space-x-2 text-sm sm:text-base"
                     >
-                      <Package className="h-5 w-5" />
+                      <Package className="h-4 w-4 sm:h-5 sm:w-5" />
                       <span>Mark as Ready</span>
                     </button>
                   )}
@@ -761,9 +762,9 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
                         e.stopPropagation();
                         updateOrderStatus(selectedOrder.id, 'delivered');
                       }}
-                      className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-3 px-4 rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-300 flex items-center justify-center space-x-2"
+                      className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-2 sm:py-3 px-3 sm:px-4 rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-300 flex items-center justify-center space-x-1 sm:space-x-2 text-sm sm:text-base"
                     >
-                      <Truck className="h-5 w-5" />
+                      <Truck className="h-4 w-4 sm:h-5 sm:w-5" />
                       <span>Mark as Delivered</span>
                     </button>
                   )}
