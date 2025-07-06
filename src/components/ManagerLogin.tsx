@@ -136,16 +136,11 @@ const ManagerLogin: React.FC<ManagerLoginProps> = ({ onLogin, onBack }) => {
         </form>
 
         <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-          <h4 className="font-semibold text-blue-900 mb-2 flex items-center">
-            <AlertCircle className="h-4 w-4 mr-2" />
-            Manager Credentials
-          </h4>
-          <div className="text-sm text-blue-800 space-y-1">
-            <p><strong>Username:</strong> ashish</p>
-            <p><strong>Password:</strong> hotel@321</p>
-          </div>
-          <p className="text-xs text-blue-600 mt-2">
-            Session expires automatically after 12 hours
+          <p className="text-sm text-blue-800 text-center">
+            <strong>Secure Manager Access</strong>
+          </p>
+          <p className="text-xs text-blue-600 mt-2 text-center">
+            Session expires automatically after 12 hours for security
           </p>
         </div>
       </div>
