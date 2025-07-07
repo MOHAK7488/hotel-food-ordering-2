@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Phone, ArrowLeft, Calendar, Package, CreditCard, X, Search, AlertCircle, History } from 'lucide-react';
+import { Phone, ArrowLeft, Calendar, Package, CreditCard, X, Search, AlertCircle, History, DollarSign, CheckCircle, Clock, TrendingUp } from 'lucide-react';
 
 interface OrderItem {
   id: number;
@@ -23,6 +23,16 @@ interface UserOrder {
   timestamp: Date;
   status: 'new' | 'preparing' | 'ready' | 'delivered';
   paymentMethod: string;
+  billPaid?: boolean;
+}
+
+interface PaymentSummary {
+  totalAmount: number;
+  paidAmount: number;
+  remainingAmount: number;
+  totalOrders: number;
+  paidOrders: number;
+  unpaidOrders: number;
 }
 
 interface OrderHistoryProps {
@@ -35,6 +45,7 @@ const OrderHistory: React.FC<OrderHistoryProps> = ({ onBack }) => {
   const [selectedOrder, setSelectedOrder] = useState<UserOrder | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [paymentSummary, setPaymentSummary] = useState<PaymentSummary | null>(null);
 
   const searchOrders = () => {
     if (mobile.length !== 10) {
@@ -48,6 +59,8 @@ const OrderHistory: React.FC<OrderHistoryProps> = ({ onBack }) => {
     // Simulate API call delay
     setTimeout(() => {
       const savedOrders = localStorage.getItem('hotelOrders');
+      const savedBills = localStorage.getItem('hotelRoomBills');
+      
       if (savedOrders) {
         const allOrders = JSON.parse(savedOrders).map((order: any) => ({
           ...order,
@@ -62,9 +75,42 @@ const OrderHistory: React.FC<OrderHistoryProps> = ({ onBack }) => {
         // Sort by timestamp (newest first)
         filteredOrders.sort((a: UserOrder, b: UserOrder) => b.timestamp.getTime() - a.timestamp.getTime());
         
-        setUserOrders(filteredOrders);
+        // Load bill payment status
+        const billStatus = savedBills ? JSON.parse(savedBills) : {};
+        
+        // Update orders with payment status based on room billing
+        const ordersWithPaymentStatus = filteredOrders.map((order: UserOrder) => ({
+          ...order,
+          billPaid: billStatus[order.customerDetails.roomNumber] || false
+        }));
+        
+        setUserOrders(ordersWithPaymentStatus);
+        
+        // Calculate payment summary
+        if (ordersWithPaymentStatus.length > 0) {
+          const totalAmount = ordersWithPaymentStatus.reduce((sum, order) => sum + order.total, 0);
+          const paidAmount = ordersWithPaymentStatus
+            .filter(order => order.billPaid)
+            .reduce((sum, order) => sum + order.total, 0);
+          const remainingAmount = totalAmount - paidAmount;
+          const totalOrders = ordersWithPaymentStatus.length;
+          const paidOrders = ordersWithPaymentStatus.filter(order => order.billPaid).length;
+          const unpaidOrders = totalOrders - paidOrders;
+          
+          setPaymentSummary({
+            totalAmount,
+            paidAmount,
+            remainingAmount,
+            totalOrders,
+            paidOrders,
+            unpaidOrders
+          });
+        } else {
+          setPaymentSummary(null);
+        }
       } else {
         setUserOrders([]);
+        setPaymentSummary(null);
       }
       setIsLoading(false);
     }, 1000);
@@ -133,7 +179,7 @@ const OrderHistory: React.FC<OrderHistoryProps> = ({ onBack }) => {
                     Order History
                   </h1>
                   <p className="text-xs sm:text-sm text-gray-600">
-                    Search your past orders using mobile number
+                    Search your past orders and payment status
                   </p>
                 </div>
               </div>
@@ -148,7 +194,7 @@ const OrderHistory: React.FC<OrderHistoryProps> = ({ onBack }) => {
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 sm:p-8 mb-6 sm:mb-8">
             <div className="text-center mb-4 sm:mb-6">
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Find Your Orders</h2>
-              <p className="text-gray-600 text-sm sm:text-base">Enter your mobile number to view your order history</p>
+              <p className="text-gray-600 text-sm sm:text-base">Enter your mobile number to view your order history and payment details</p>
             </div>
 
             <div className="max-w-md mx-auto">
@@ -194,6 +240,83 @@ const OrderHistory: React.FC<OrderHistoryProps> = ({ onBack }) => {
             </div>
           </div>
 
+          {/* Payment Summary */}
+          {hasSearched && paymentSummary && (
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 sm:p-8 mb-6 sm:mb-8">
+              <div className="text-center mb-6">
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Payment Summary</h3>
+                <p className="text-gray-600 text-sm sm:text-base">Complete overview of your orders and payments</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-6">
+                <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-4 sm:p-6 border border-blue-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-blue-700">Total Amount</p>
+                      <p className="text-2xl sm:text-3xl font-bold text-blue-900">₹{paymentSummary.totalAmount}</p>
+                      <p className="text-xs sm:text-sm text-blue-600 mt-1">{paymentSummary.totalOrders} orders</p>
+                    </div>
+                    <div className="p-3 bg-blue-200 rounded-full">
+                      <DollarSign className="h-6 w-6 text-blue-700" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-xl p-4 sm:p-6 border border-green-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-green-700">Paid Amount</p>
+                      <p className="text-2xl sm:text-3xl font-bold text-green-900">₹{paymentSummary.paidAmount}</p>
+                      <p className="text-xs sm:text-sm text-green-600 mt-1">{paymentSummary.paidOrders} orders paid</p>
+                    </div>
+                    <div className="p-3 bg-green-200 rounded-full">
+                      <CheckCircle className="h-6 w-6 text-green-700" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-gradient-to-r from-red-50 to-red-100 rounded-xl p-4 sm:p-6 border border-red-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-red-700">Remaining Amount</p>
+                      <p className="text-2xl sm:text-3xl font-bold text-red-900">₹{paymentSummary.remainingAmount}</p>
+                      <p className="text-xs sm:text-sm text-red-600 mt-1">{paymentSummary.unpaidOrders} orders pending</p>
+                    </div>
+                    <div className="p-3 bg-red-200 rounded-full">
+                      <Clock className="h-6 w-6 text-red-700" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Progress Bar */}
+              <div className="bg-gray-200 rounded-full h-4 mb-4">
+                <div 
+                  className="bg-gradient-to-r from-green-500 to-green-600 h-4 rounded-full transition-all duration-500"
+                  style={{ width: `${paymentSummary.totalAmount > 0 ? (paymentSummary.paidAmount / paymentSummary.totalAmount) * 100 : 0}%` }}
+                ></div>
+              </div>
+              <div className="flex justify-between text-sm text-gray-600">
+                <span>Payment Progress</span>
+                <span>{paymentSummary.totalAmount > 0 ? Math.round((paymentSummary.paidAmount / paymentSummary.totalAmount) * 100) : 0}% Complete</span>
+              </div>
+
+              {paymentSummary.remainingAmount > 0 && (
+                <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+                  <div className="flex items-center space-x-2">
+                    <AlertCircle className="h-5 w-5 text-yellow-600" />
+                    <p className="text-yellow-800 font-medium">
+                      You have ₹{paymentSummary.remainingAmount} pending payment for {paymentSummary.unpaidOrders} orders.
+                    </p>
+                  </div>
+                  <p className="text-yellow-700 text-sm mt-1">
+                    Please complete payment at the reception using UPI, cash, or card.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Orders Results */}
           {hasSearched && (
             <>
@@ -212,7 +335,7 @@ const OrderHistory: React.FC<OrderHistoryProps> = ({ onBack }) => {
                     <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
                       Orders for +91 {mobile} ({userOrders.length})
                     </h2>
-                    <p className="text-gray-600 text-sm sm:text-base">Your complete order history</p>
+                    <p className="text-gray-600 text-sm sm:text-base">Your complete order history with payment status</p>
                   </div>
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
@@ -230,10 +353,20 @@ const OrderHistory: React.FC<OrderHistoryProps> = ({ onBack }) => {
                                 {formatDate(order.timestamp)}
                               </p>
                             </div>
-                            <span className={`px-2 py-1 sm:px-3 sm:py-1 rounded-full text-xs font-bold border flex items-center space-x-1 ${getStatusColor(order.status)}`}>
-                              <span>{getStatusIcon(order.status)}</span>
-                              <span>{getStatusText(order.status)}</span>
-                            </span>
+                            <div className="flex flex-col items-end space-y-2">
+                              <span className={`px-2 py-1 sm:px-3 sm:py-1 rounded-full text-xs font-bold border flex items-center space-x-1 ${getStatusColor(order.status)}`}>
+                                <span>{getStatusIcon(order.status)}</span>
+                                <span>{getStatusText(order.status)}</span>
+                              </span>
+                              <span className={`px-2 py-1 sm:px-3 sm:py-1 rounded-full text-xs font-bold border flex items-center space-x-1 ${
+                                order.billPaid 
+                                  ? 'bg-green-100 text-green-800 border-green-200' 
+                                  : 'bg-red-100 text-red-800 border-red-200'
+                              }`}>
+                                {order.billPaid ? <CheckCircle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+                                <span>{order.billPaid ? 'PAID' : 'UNPAID'}</span>
+                              </span>
+                            </div>
                           </div>
 
                           <div className="mb-4">
@@ -372,12 +505,35 @@ const OrderHistory: React.FC<OrderHistoryProps> = ({ onBack }) => {
                 </div>
 
                 <div className="bg-gradient-to-r from-amber-50 to-amber-100 p-3 sm:p-4 rounded-xl border border-amber-200">
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between items-center mb-2">
                     <span className="text-base sm:text-lg font-bold text-gray-900">Total Amount</span>
                     <span className="text-xl sm:text-2xl font-bold text-amber-600">₹{selectedOrder.total}</span>
                   </div>
-                  <p className="text-xs sm:text-sm text-gray-600 mt-1">Payment: {selectedOrder.paymentMethod}</p>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Payment Status:</span>
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center space-x-1 ${
+                      selectedOrder.billPaid 
+                        ? 'bg-green-100 text-green-800 border-green-200' 
+                        : 'bg-red-100 text-red-800 border-red-200'
+                    }`}>
+                      {selectedOrder.billPaid ? <CheckCircle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+                      <span>{selectedOrder.billPaid ? 'PAID' : 'UNPAID'}</span>
+                    </span>
+                  </div>
+                  <p className="text-xs sm:text-sm text-gray-600 mt-2">Payment Method: {selectedOrder.paymentMethod}</p>
                 </div>
+
+                {!selectedOrder.billPaid && (
+                  <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-xl">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <AlertCircle className="h-5 w-5 text-yellow-600" />
+                      <span className="font-semibold text-yellow-800">Payment Pending</span>
+                    </div>
+                    <p className="text-yellow-700 text-sm">
+                      This order amount is still pending. Please complete payment at the reception using UPI, cash, or card.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
