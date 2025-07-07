@@ -73,6 +73,15 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
   const [showRoomBilling, setShowRoomBilling] = useState<boolean>(false);
   const [showMenuManager, setShowMenuManager] = useState<boolean>(false);
   const [lastOrderIds, setLastOrderIds] = useState<Set<string>>(new Set());
+  const [showNotificationPanel, setShowNotificationPanel] = useState<boolean>(false);
+  const [notificationHistory, setNotificationHistory] = useState<Array<{
+    id: string;
+    message: string;
+    timestamp: Date;
+    type: 'new_order' | 'order_update';
+    orderId: string;
+    read: boolean;
+  }>>([]);
   
   // Audio context for notification sound
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -168,6 +177,43 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
     }
   };
 
+  // Add notification to history
+  const addNotification = (message: string, type: 'new_order' | 'order_update', orderId: string) => {
+    const newNotification = {
+      id: Date.now().toString(),
+      message,
+      timestamp: new Date(),
+      type,
+      orderId,
+      read: false
+    };
+
+    setNotificationHistory(prev => [newNotification, ...prev.slice(0, 49)]); // Keep last 50 notifications
+  };
+
+  // Mark notification as read
+  const markNotificationAsRead = (notificationId: string) => {
+    setNotificationHistory(prev => 
+      prev.map(notif => 
+        notif.id === notificationId ? { ...notif, read: true } : notif
+      )
+    );
+  };
+
+  // Mark all notifications as read
+  const markAllNotificationsAsRead = () => {
+    setNotificationHistory(prev => 
+      prev.map(notif => ({ ...notif, read: true }))
+    );
+    setNotifications(0);
+  };
+
+  // Clear all notifications
+  const clearAllNotifications = () => {
+    setNotificationHistory([]);
+    setNotifications(0);
+  };
+
   // Check session validity and calculate remaining time
   useEffect(() => {
     const checkSession = () => {
@@ -225,6 +271,18 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
           playNotificationSound();
           setNewOrderAlert(true);
           
+          // Add notifications for new orders
+          newOrderIds.forEach(orderId => {
+            const newOrder = parsedOrders.find((order: RestaurantOrder) => order.id === orderId);
+            if (newOrder) {
+              addNotification(
+                `New order #${orderId} from Room ${newOrder.customerDetails.roomNumber}`,
+                'new_order',
+                orderId
+              );
+            }
+          });
+          
           // Show alert for 5 seconds
           setTimeout(() => {
             setNewOrderAlert(false);
@@ -271,6 +329,16 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
     // Update notifications count
     const newOrdersCount = updatedOrders.filter(order => order.status === 'new').length;
     setNotifications(newOrdersCount);
+
+    // Add notification for status update
+    const order = orders.find(o => o.id === orderId);
+    if (order) {
+      addNotification(
+        `Order #${orderId} status updated to ${newStatus.toUpperCase()}`,
+        'order_update',
+        orderId
+      );
+    }
 
     // Update selected order if it's the one being modified
     if (selectedOrder && selectedOrder.id === orderId) {
@@ -415,14 +483,104 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
                 <Shield className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
                 <span className="text-xs sm:text-sm text-green-700 font-medium">Session: {sessionTimeLeft}</span>
               </div>
+              
+              {/* Notification Bell with Panel */}
               <div className="relative">
-                <Bell className={`h-5 w-5 sm:h-6 sm:w-6 text-gray-600 ${notifications > 0 ? 'animate-pulse text-red-600' : ''}`} />
-                {notifications > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center text-xs animate-bounce">
-                    {notifications}
-                  </span>
+                <button
+                  onClick={() => setShowNotificationPanel(!showNotificationPanel)}
+                  className={`p-2 rounded-xl transition-all duration-300 hover:bg-gray-100 ${
+                    notifications > 0 ? 'animate-pulse' : ''
+                  }`}
+                  title="View notifications"
+                >
+                  <Bell className={`h-5 w-5 sm:h-6 sm:w-6 ${notifications > 0 ? 'text-red-600' : 'text-gray-600'}`} />
+                  {notifications > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center text-xs animate-bounce">
+                      {notifications}
+                    </span>
+                  )}
+                </button>
+
+                {/* Notification Panel */}
+                {showNotificationPanel && (
+                  <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 max-h-96 overflow-hidden">
+                    <div className="p-4 border-b border-gray-200">
+                      <div className="flex justify-between items-center">
+                        <h3 className="text-lg font-bold text-gray-900">Notifications</h3>
+                        <div className="flex space-x-2">
+                          {notificationHistory.filter(n => !n.read).length > 0 && (
+                            <button
+                              onClick={markAllNotificationsAsRead}
+                              className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                            >
+                              Mark all read
+                            </button>
+                          )}
+                          <button
+                            onClick={clearAllNotifications}
+                            className="text-xs text-red-600 hover:text-red-800 font-medium"
+                          >
+                            Clear all
+                          </button>
+                          <button
+                            onClick={() => setShowNotificationPanel(false)}
+                            className="text-gray-500 hover:text-gray-700"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="max-h-80 overflow-y-auto">
+                      {notificationHistory.length === 0 ? (
+                        <div className="p-6 text-center">
+                          <Bell className="h-12 w-12 text-gray-300 mx-auto mb-2" />
+                          <p className="text-gray-500">No notifications yet</p>
+                        </div>
+                      ) : (
+                        <div className="divide-y divide-gray-100">
+                          {notificationHistory.map((notification) => (
+                            <div
+                              key={notification.id}
+                              className={`p-4 hover:bg-gray-50 transition-colors duration-200 cursor-pointer ${
+                                !notification.read ? 'bg-blue-50 border-l-4 border-blue-500' : ''
+                              }`}
+                              onClick={() => markNotificationAsRead(notification.id)}
+                            >
+                              <div className="flex items-start space-x-3">
+                                <div className={`p-2 rounded-full ${
+                                  notification.type === 'new_order' 
+                                    ? 'bg-red-100 text-red-600' 
+                                    : 'bg-blue-100 text-blue-600'
+                                }`}>
+                                  {notification.type === 'new_order' ? (
+                                    <AlertCircle className="h-4 w-4" />
+                                  ) : (
+                                    <CheckCircle className="h-4 w-4" />
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className={`text-sm ${!notification.read ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>
+                                    {notification.message}
+                                  </p>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    {formatTime(notification.timestamp)} - {formatDate(notification.timestamp)}
+                                  </p>
+                                </div>
+                                {!notification.read && (
+                                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 )}
               </div>
+              
               <button 
                 onClick={handleLogout}
                 className="bg-gradient-to-r from-red-600 to-red-700 text-white px-2 py-2 sm:px-4 sm:py-2 rounded-xl hover:from-red-700 hover:to-red-800 transition-all duration-300 flex items-center space-x-1 sm:space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-xs sm:text-sm"
