@@ -24,9 +24,11 @@ import {
   Shield,
   Volume2,
   VolumeX,
-  CreditCard
+  CreditCard,
+  Menu
 } from 'lucide-react';
 import RoomBilling from './RoomBilling';
+import MenuManager from './MenuManager';
 
 interface OrderItem {
   id: number;
@@ -69,6 +71,7 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [newOrderAlert, setNewOrderAlert] = useState<boolean>(false);
   const [showRoomBilling, setShowRoomBilling] = useState<boolean>(false);
+  const [showMenuManager, setShowMenuManager] = useState<boolean>(false);
   const [lastOrderIds, setLastOrderIds] = useState<Set<string>>(new Set());
   
   // Audio context for notification sound
@@ -338,6 +341,11 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
     return <RoomBilling onBack={() => setShowRoomBilling(false)} />;
   }
 
+  // Show Menu Manager if requested
+  if (showMenuManager) {
+    return <MenuManager onBack={() => setShowMenuManager(false)} />;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* New Order Alert */}
@@ -376,6 +384,14 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
               </div>
             </div>
             <div className="flex items-center space-x-2 sm:space-x-4">
+              <button
+                onClick={() => setShowMenuManager(true)}
+                className="bg-gradient-to-r from-orange-600 to-orange-700 text-white px-2 py-2 sm:px-4 sm:py-2 rounded-xl hover:from-orange-700 hover:to-orange-800 transition-all duration-300 flex items-center space-x-1 sm:space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-xs sm:text-sm"
+              >
+                <Menu className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Menu</span>
+                <span className="sm:hidden">Menu</span>
+              </button>
               <button
                 onClick={() => setShowRoomBilling(true)}
                 className="bg-gradient-to-r from-green-600 to-green-700 text-white px-2 py-2 sm:px-4 sm:py-2 rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-300 flex items-center space-x-1 sm:space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-xs sm:text-sm"
