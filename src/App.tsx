@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChefHat, Phone, Shield, User, Clock, Star, MapPin, Plus, Minus, ShoppingCart, X, CreditCard, Utensils, Bed, Wifi, Car, Dumbbell, ExternalLink } from 'lucide-react';
+import { ChefHat, Phone, Shield, User, Clock, Star, MapPin, Plus, Minus, ShoppingCart, X, CreditCard, Utensils, Bed, Wifi, Car, Dumbbell, ExternalLink, Search } from 'lucide-react';
 import ManagerLogin from './components/ManagerLogin';
 import RestaurantManager from './components/RestaurantManager';
 import OrderHistory from './components/OrderHistory';
@@ -40,6 +40,7 @@ function App() {
     roomNumber: ''
   });
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Load menu items from localStorage
   useEffect(() => {
@@ -263,9 +264,16 @@ function App() {
   const availableMenuItems = menuItems.filter(item => !item.disabled);
   const categories = ['All', ...Array.from(new Set(availableMenuItems.map(item => item.category)))];
 
-  const filteredItems = selectedCategory === 'All' 
-    ? availableMenuItems 
-    : availableMenuItems.filter(item => item.category === selectedCategory);
+  // Apply filters: category, search term
+  const filteredItems = availableMenuItems.filter(item => {
+    const matchesCategory = selectedCategory === 'All' || item.category === selectedCategory;
+    const matchesSearch = searchTerm === '' || 
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.category.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    return matchesCategory && matchesSearch;
+  });
 
   const addToCart = (item: MenuItem) => {
     setCart(prevCart => {
@@ -615,14 +623,47 @@ function App() {
           </div>
         </header>
 
-        {/* Category Filter */}
+        {/* Search and Category Filter */}
         <section className="py-6 sm:py-8">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            {/* Search Bar */}
+            <div className="mb-6 sm:mb-8">
+              <div className="relative max-w-2xl mx-auto">
+                <Search className="h-5 w-5 text-gray-400 absolute left-4 top-1/2 transform -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search for dishes, ingredients, or categories..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3 sm:py-4 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-300 text-sm sm:text-base bg-white/90 backdrop-blur-sm shadow-lg"
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm('')}
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-300"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                )}
+              </div>
+              {searchTerm && (
+                <div className="text-center mt-4">
+                  <p className="text-gray-600 text-sm sm:text-base">
+                    {filteredItems.length} dish{filteredItems.length !== 1 ? 'es' : ''} found for "{searchTerm}"
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Category Filter */}
             <div className="flex flex-wrap gap-2 sm:gap-4 justify-center mb-6 sm:mb-8">
               {categories.map((category) => (
                 <button
                   key={category}
-                  onClick={() => setSelectedCategory(category)}
+                  onClick={() => {
+                    setSelectedCategory(category);
+                    setSearchTerm(''); // Clear search when selecting category
+                  }}
                   className={`px-3 py-2 sm:px-6 sm:py-3 rounded-full font-semibold transition-all duration-300 transform hover:-translate-y-1 text-xs sm:text-sm ${
                     selectedCategory === category
                       ? 'bg-gradient-to-r from-amber-600 to-red-600 text-white shadow-lg'
@@ -634,77 +675,112 @@ function App() {
               ))}
             </div>
 
+            {/* Results Info */}
+            {(searchTerm || selectedCategory !== 'All') && (
+              <div className="text-center mb-6">
+                <p className="text-gray-600 text-sm sm:text-base">
+                  Showing {filteredItems.length} dish{filteredItems.length !== 1 ? 'es' : ''}
+                  {searchTerm && ` matching "${searchTerm}"`}
+                  {selectedCategory !== 'All' && ` in ${selectedCategory}`}
+                </p>
+              </div>
+            )}
+
             {/* Menu Items */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-              {filteredItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
-                >
-                  <div className="relative">
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="w-full h-36 sm:h-48 object-cover"
-                    />
-                    <div className="absolute top-2 sm:top-4 left-2 sm:left-4 flex flex-wrap gap-1 sm:gap-2">
-                      <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                        item.veg ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                      }`}>
-                        {item.veg ? '🌱 VEG' : '🍖 NON-VEG'}
-                      </span>
-                      {item.popular && (
-                        <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-bold">
-                          ⭐ POPULAR
+            {filteredItems.length === 0 ? (
+              <div className="text-center py-16">
+                <Search className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">No dishes found</h3>
+                <p className="text-gray-600 mb-4">
+                  {searchTerm 
+                    ? `No dishes match "${searchTerm}". Try searching for something else.`
+                    : 'No dishes available in this category.'
+                  }
+                </p>
+                {(searchTerm || selectedCategory !== 'All') && (
+                  <button
+                    onClick={() => {
+                      setSearchTerm('');
+                      setSelectedCategory('All');
+                    }}
+                    className="bg-gradient-to-r from-amber-600 to-red-600 text-white px-6 py-3 rounded-xl hover:from-amber-700 hover:to-red-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                  >
+                    View All Dishes
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+                {filteredItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
+                  >
+                    <div className="relative">
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="w-full h-36 sm:h-48 object-cover"
+                      />
+                      <div className="absolute top-2 sm:top-4 left-2 sm:left-4 flex flex-wrap gap-1 sm:gap-2">
+                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                          item.veg ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}>
+                          {item.veg ? '🌱 VEG' : '🍖 NON-VEG'}
                         </span>
-                      )}
-                      {item.spicy && (
-                        <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-bold">
-                          🌶️ SPICY
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="p-4 sm:p-6">
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">{item.name}</h3>
-                    <p className="text-gray-600 text-xs sm:text-sm mb-4 line-clamp-2">{item.description}</p>
-                    
-                    <div className="flex justify-between items-center">
-                      <span className="text-xl sm:text-2xl font-bold text-amber-600">₹{item.price}</span>
-                      
-                      {cart.find(cartItem => cartItem.id === item.id) ? (
-                        <div className="flex items-center space-x-2 sm:space-x-3 bg-green-50 rounded-xl px-2 sm:px-3 py-2">
-                          <button
-                            onClick={() => removeFromCart(item.id)}
-                            className="w-6 h-6 sm:w-8 sm:h-8 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors duration-300"
-                          >
-                            <Minus className="h-3 w-3 sm:h-4 sm:w-4" />
-                          </button>
-                          <span className="font-bold text-green-800 min-w-[20px] text-center text-sm sm:text-base">
-                            {cart.find(cartItem => cartItem.id === item.id)?.quantity}
+                        {item.popular && (
+                          <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-bold">
+                            ⭐ POPULAR
                           </span>
+                        )}
+                        {item.spicy && (
+                          <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-bold">
+                            🌶️ SPICY
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="p-4 sm:p-6">
+                      <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">{item.name}</h3>
+                      <p className="text-gray-600 text-xs sm:text-sm mb-4 line-clamp-2">{item.description}</p>
+                      
+                      <div className="flex justify-between items-center">
+                        <span className="text-xl sm:text-2xl font-bold text-amber-600">₹{item.price}</span>
+                        
+                        {cart.find(cartItem => cartItem.id === item.id) ? (
+                          <div className="flex items-center space-x-2 sm:space-x-3 bg-green-50 rounded-xl px-2 sm:px-3 py-2">
+                            <button
+                              onClick={() => removeFromCart(item.id)}
+                              className="w-6 h-6 sm:w-8 sm:h-8 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors duration-300"
+                            >
+                              <Minus className="h-3 w-3 sm:h-4 sm:w-4" />
+                            </button>
+                            <span className="font-bold text-green-800 min-w-[20px] text-center text-sm sm:text-base">
+                              {cart.find(cartItem => cartItem.id === item.id)?.quantity}
+                            </span>
+                            <button
+                              onClick={() => addToCart(item)}
+                              className="w-6 h-6 sm:w-8 sm:h-8 bg-green-500 text-white rounded-full flex items-center justify-center hover:bg-green-600 transition-colors duration-300"
+                            >
+                              <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                            </button>
+                          </div>
+                        ) : (
                           <button
                             onClick={() => addToCart(item)}
-                            className="w-6 h-6 sm:w-8 sm:h-8 bg-green-500 text-white rounded-full flex items-center justify-center hover:bg-green-600 transition-colors duration-300"
+                            className="bg-gradient-to-r from-amber-600 to-red-600 text-white px-4 py-2 sm:px-6 sm:py-2 rounded-xl hover:from-amber-700 hover:to-red-700 transition-all duration-300 flex items-center space-x-1 sm:space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-xs sm:text-sm"
                           >
                             <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                            <span>Add</span>
                           </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => addToCart(item)}
-                          className="bg-gradient-to-r from-amber-600 to-red-600 text-white px-4 py-2 sm:px-6 sm:py-2 rounded-xl hover:from-amber-700 hover:to-red-700 transition-all duration-300 flex items-center space-x-1 sm:space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-xs sm:text-sm"
-                        >
-                          <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
-                          <span>Add</span>
-                        </button>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </section>
 
