@@ -39,6 +39,7 @@ function App() {
     mobile: '',
     roomNumber: ''
   });
+  const [mobileError, setMobileError] = useState('');
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -312,6 +313,12 @@ function App() {
   };
 
   const handlePlaceOrder = () => {
+    // Validate mobile number before placing order
+    if (!isValidMobileNumber(customerDetails.mobile)) {
+      setMobileError('Please enter a valid 10-digit mobile number');
+      return;
+    }
+    
     if (cart.length === 0 || !customerDetails.name || !customerDetails.mobile || !customerDetails.roomNumber) return;
 
     const order = {
@@ -340,10 +347,42 @@ function App() {
     setShowCheckout(false);
     setShowCart(false);
     setCustomerDetails({ name: '', mobile: '', roomNumber: '' });
+    setMobileError('');
 
     alert('Order placed successfully! You will receive updates on your order status.');
   };
 
+  // Mobile number validation function
+  const isValidMobileNumber = (mobile: string): boolean => {
+    // Check if mobile number is exactly 10 digits
+    const mobileRegex = /^[6-9]\d{9}$/;
+    return mobileRegex.test(mobile);
+  };
+
+  // Handle mobile number input with validation
+  const handleMobileChange = (value: string) => {
+    // Remove any non-digit characters
+    const cleanValue = value.replace(/\D/g, '');
+    
+    // Limit to 10 digits
+    if (cleanValue.length <= 10) {
+      setCustomerDetails(prev => ({ ...prev, mobile: cleanValue }));
+      
+      // Clear error when user starts typing
+      if (mobileError) {
+        setMobileError('');
+      }
+      
+      // Validate mobile number in real-time
+      if (cleanValue.length === 10) {
+        if (!isValidMobileNumber(cleanValue)) {
+          setMobileError('Mobile number must start with 6, 7, 8, or 9');
+        }
+      } else if (cleanValue.length > 0 && cleanValue.length < 10) {
+        setMobileError('Mobile number must be 10 digits');
+      }
+    }
+  };
   const handleManagerLogin = () => {
     setIsManagerAuthenticated(true);
     setCurrentView('manager-dashboard');
@@ -905,17 +944,52 @@ function App() {
                         type="tel"
                         value={customerDetails.mobile}
                         onChange={(e) => {
-                          const value = e.target.value.replace(/\D/g, '');
-                          if (value.length <= 10) {
-                            setCustomerDetails(prev => ({ ...prev, mobile: value }));
-                          }
+                          handleMobileChange(e.target.value);
                         }}
-                        className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-2 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-300 text-sm sm:text-base"
+                        className={`w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-2 sm:py-3 border rounded-xl focus:ring-2 focus:border-transparent transition-all duration-300 text-sm sm:text-base ${
+                          mobileError 
+                            ? 'border-red-300 focus:ring-red-500 bg-red-50' 
+                            : customerDetails.mobile.length === 10 && isValidMobileNumber(customerDetails.mobile)
+                            ? 'border-green-300 focus:ring-green-500 bg-green-50'
+                            : 'border-gray-300 focus:ring-amber-500'
+                        }`}
                         placeholder="Enter 10-digit mobile number"
                         maxLength={10}
                         required
                       />
+                      {/* Validation Icons */}
+                      {customerDetails.mobile.length > 0 && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          {mobileError ? (
+                            <div className="flex items-center space-x-1">
+                              <X className="h-4 w-4 text-red-500" />
+                            </div>
+                          ) : customerDetails.mobile.length === 10 && isValidMobileNumber(customerDetails.mobile) ? (
+                            <div className="flex items-center space-x-1">
+                              <CheckCircle className="h-4 w-4 text-green-500" />
+                            </div>
+                          ) : null}
+                        </div>
+                      )}
                     </div>
+                    {/* Error Message */}
+                    {mobileError && (
+                      <p className="mt-1 text-sm text-red-600 flex items-center space-x-1">
+                        <AlertCircle className="h-4 w-4" />
+                        <span>{mobileError}</span>
+                      </p>
+                    )}
+                    {/* Success Message */}
+                    {!mobileError && customerDetails.mobile.length === 10 && isValidMobileNumber(customerDetails.mobile) && (
+                      <p className="mt-1 text-sm text-green-600 flex items-center space-x-1">
+                        <CheckCircle className="h-4 w-4" />
+                        <span>Valid mobile number</span>
+                      </p>
+                    )}
+                    {/* Helper Text */}
+                    <p className="mt-1 text-xs text-gray-500">
+                      Enter a valid Indian mobile number (starting with 6, 7, 8, or 9)
+                    </p>
                   </div>
 
                   <div>
@@ -959,7 +1033,13 @@ function App() {
 
                   <button
                     type="submit"
-                    disabled={!customerDetails.name || !customerDetails.mobile || !customerDetails.roomNumber}
+                    disabled={
+                      !customerDetails.name || 
+                      !customerDetails.mobile || 
+                      !customerDetails.roomNumber || 
+                      mobileError !== '' ||
+                      !isValidMobileNumber(customerDetails.mobile)
+                    }
                     className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-3 px-4 rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-300 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none text-sm sm:text-base"
                   >
                     Place Order (₹{getCartTotal()})
