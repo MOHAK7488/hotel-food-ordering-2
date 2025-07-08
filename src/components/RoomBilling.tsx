@@ -12,7 +12,9 @@ import {
   AlertCircle,
   Filter,
   Search,
-  X
+  X,
+  ArrowLeft,
+  RefreshCw
 } from 'lucide-react';
 
 interface OrderItem {
@@ -46,6 +48,9 @@ interface RoomBill {
   totalAmount: number;
   isPaid: boolean;
   lastOrderDate: Date;
+  customerName: string;
+  customerMobile: string;
+  orderCount: number;
 }
 
 interface RoomBillingProps {
@@ -58,11 +63,18 @@ const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'paid' | 'unpaid'>('all');
   const [isLoading, setIsLoading] = useState(true);
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
-  useEffect(() => {
-    const loadRoomBills = () => {
+  const loadRoomBills = () => {
+    console.log('Loading room bills...');
+    setIsLoading(true);
+    
+    try {
       const savedOrders = localStorage.getItem('hotelOrders');
       const savedBills = localStorage.getItem('hotelRoomBills');
+      
+      console.log('Saved orders:', savedOrders);
+      console.log('Saved bills:', savedBills);
       
       if (savedOrders) {
         const allOrders: RoomOrder[] = JSON.parse(savedOrders).map((order: any) => ({
@@ -70,6 +82,8 @@ const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
           timestamp: new Date(order.timestamp),
           billPaid: order.billPaid || false
         }));
+
+        console.log('All orders loaded:', allOrders.length);
 
         // Group orders by room number
         const roomOrdersMap = new Map<string, RoomOrder[]>();
@@ -82,40 +96,62 @@ const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
           roomOrdersMap.get(roomNumber)!.push(order);
         });
 
+        console.log('Room orders map:', roomOrdersMap);
+
         // Load saved bill payment status
         const savedBillStatus = savedBills ? JSON.parse(savedBills) : {};
+        console.log('Saved bill status:', savedBillStatus);
 
         // Create room bills
         const bills: RoomBill[] = Array.from(roomOrdersMap.entries()).map(([roomNumber, orders]) => {
           const totalAmount = orders.reduce((sum, order) => sum + order.total, 0);
           const lastOrderDate = new Date(Math.max(...orders.map(order => order.timestamp.getTime())));
           const isPaid = savedBillStatus[roomNumber] || false;
+          
+          // Get customer details from the most recent order
+          const latestOrder = orders.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
 
           return {
             roomNumber,
             orders: orders.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()),
             totalAmount,
             isPaid,
-            lastOrderDate
+            lastOrderDate,
+            customerName: latestOrder.customerDetails.name,
+            customerMobile: latestOrder.customerDetails.mobile,
+            orderCount: orders.length
           };
         });
 
         // Sort by last order date (most recent first)
         bills.sort((a, b) => b.lastOrderDate.getTime() - a.lastOrderDate.getTime());
         
+        console.log('Final bills:', bills);
         setRoomBills(bills);
+      } else {
+        console.log('No saved orders found');
+        setRoomBills([]);
       }
-      setIsLoading(false);
-    };
+    } catch (error) {
+      console.error('Error loading room bills:', error);
+      setRoomBills([]);
+    }
+    
+    setIsLoading(false);
+    setLastRefresh(new Date());
+  };
 
+  useEffect(() => {
     loadRoomBills();
 
-    // Set up real-time updates
-    const interval = setInterval(loadRoomBills, 1000);
+    // Set up real-time updates every 3 seconds
+    const interval = setInterval(loadRoomBills, 3000);
     return () => clearInterval(interval);
   }, []);
 
   const markBillAsPaid = (roomNumber: string) => {
+    console.log('Marking bill as paid for room:', roomNumber);
+    
     const updatedBills = roomBills.map(bill => 
       bill.roomNumber === roomNumber ? { ...bill, isPaid: true } : bill
     );
@@ -128,6 +164,7 @@ const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
     }, {} as Record<string, boolean>);
     
     localStorage.setItem('hotelRoomBills', JSON.stringify(billStatus));
+    console.log('Updated bill status saved:', billStatus);
 
     // Update selected room if it's the one being modified
     if (selectedRoom && selectedRoom.roomNumber === roomNumber) {
@@ -136,6 +173,8 @@ const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
   };
 
   const markBillAsUnpaid = (roomNumber: string) => {
+    console.log('Marking bill as unpaid for room:', roomNumber);
+    
     const updatedBills = roomBills.map(bill => 
       bill.roomNumber === roomNumber ? { ...bill, isPaid: false } : bill
     );
@@ -148,6 +187,7 @@ const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
     }, {} as Record<string, boolean>);
     
     localStorage.setItem('hotelRoomBills', JSON.stringify(billStatus));
+    console.log('Updated bill status saved:', billStatus);
 
     // Update selected room if it's the one being modified
     if (selectedRoom && selectedRoom.roomNumber === roomNumber) {
@@ -157,10 +197,8 @@ const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
 
   const filteredBills = roomBills.filter(bill => {
     const matchesSearch = bill.roomNumber.includes(searchTerm) ||
-                         bill.orders.some(order => 
-                           order.customerDetails.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           order.customerDetails.mobile.includes(searchTerm)
-                         );
+                         bill.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         bill.customerMobile.includes(searchTerm);
     
     const matchesStatus = statusFilter === 'all' || 
                          (statusFilter === 'paid' && bill.isPaid) ||
@@ -179,6 +217,14 @@ const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
     });
   };
 
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('en-IN', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    });
+  };
+
   const getTotalStats = () => {
     const totalRooms = roomBills.length;
     const paidRooms = roomBills.filter(bill => bill.isPaid).length;
@@ -186,6 +232,7 @@ const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
     const totalRevenue = roomBills.reduce((sum, bill) => sum + bill.totalAmount, 0);
     const paidRevenue = roomBills.filter(bill => bill.isPaid).reduce((sum, bill) => sum + bill.totalAmount, 0);
     const unpaidRevenue = roomBills.filter(bill => !bill.isPaid).reduce((sum, bill) => sum + bill.totalAmount, 0);
+    const totalOrders = roomBills.reduce((sum, bill) => sum + bill.orderCount, 0);
 
     return {
       totalRooms,
@@ -193,7 +240,8 @@ const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
       unpaidRooms,
       totalRevenue,
       paidRevenue,
-      unpaidRevenue
+      unpaidRevenue,
+      totalOrders
     };
   };
 
@@ -221,7 +269,7 @@ const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
                 onClick={onBack}
                 className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-full transition-all duration-300"
               >
-                <X className="h-5 w-5" />
+                <ArrowLeft className="h-5 w-5" />
               </button>
               <div className="flex items-center space-x-3">
                 <div className="relative">
@@ -230,14 +278,21 @@ const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                    Room Billing
+                    Room Billing Management
                   </h1>
                   <p className="text-sm text-gray-600">
-                    Manage room-wise bills and payments
+                    Manage room-wise bills and payments • Last updated: {formatTime(lastRefresh)}
                   </p>
                 </div>
               </div>
             </div>
+            <button
+              onClick={loadRoomBills}
+              className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+            >
+              <RefreshCw className="h-4 w-4" />
+              <span>Refresh</span>
+            </button>
           </div>
         </div>
       </header>
@@ -245,82 +300,113 @@ const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
       {/* Stats Dashboard */}
       <section className="py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6 mb-8">
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4 sm:gap-6 mb-8">
+            <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Total Rooms</p>
-                  <p className="text-3xl font-bold text-gray-900">{stats.totalRooms}</p>
+                  <p className="text-xs sm:text-sm font-medium text-gray-600">Total Rooms</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">{stats.totalRooms}</p>
                 </div>
-                <div className="p-3 bg-blue-100 rounded-full">
-                  <MapPin className="h-6 w-6 text-blue-600" />
+                <div className="p-2 sm:p-3 bg-blue-100 rounded-full">
+                  <MapPin className="h-4 w-4 sm:h-6 sm:w-6 text-blue-600" />
                 </div>
               </div>
             </div>
             
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+            <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Paid Bills</p>
-                  <p className="text-3xl font-bold text-green-600">{stats.paidRooms}</p>
+                  <p className="text-xs sm:text-sm font-medium text-gray-600">Total Orders</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">{stats.totalOrders}</p>
                 </div>
-                <div className="p-3 bg-green-100 rounded-full">
-                  <CheckCircle className="h-6 w-6 text-green-600" />
+                <div className="p-2 sm:p-3 bg-purple-100 rounded-full">
+                  <Package className="h-4 w-4 sm:h-6 sm:w-6 text-purple-600" />
                 </div>
               </div>
             </div>
             
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+            <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Unpaid Bills</p>
-                  <p className="text-3xl font-bold text-red-600">{stats.unpaidRooms}</p>
+                  <p className="text-xs sm:text-sm font-medium text-gray-600">Paid Bills</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-green-600">{stats.paidRooms}</p>
                 </div>
-                <div className="p-3 bg-red-100 rounded-full">
-                  <AlertCircle className="h-6 w-6 text-red-600" />
+                <div className="p-2 sm:p-3 bg-green-100 rounded-full">
+                  <CheckCircle className="h-4 w-4 sm:h-6 sm:w-6 text-green-600" />
                 </div>
               </div>
             </div>
             
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+            <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                  <p className="text-2xl font-bold text-gray-900">₹{stats.totalRevenue}</p>
+                  <p className="text-xs sm:text-sm font-medium text-gray-600">Unpaid Bills</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-red-600">{stats.unpaidRooms}</p>
                 </div>
-                <div className="p-3 bg-purple-100 rounded-full">
-                  <DollarSign className="h-6 w-6 text-purple-600" />
+                <div className="p-2 sm:p-3 bg-red-100 rounded-full">
+                  <AlertCircle className="h-4 w-4 sm:h-6 sm:w-6 text-red-600" />
                 </div>
               </div>
             </div>
             
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+            <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Paid Amount</p>
-                  <p className="text-2xl font-bold text-green-600">₹{stats.paidRevenue}</p>
+                  <p className="text-xs sm:text-sm font-medium text-gray-600">Total Revenue</p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">₹{stats.totalRevenue}</p>
                 </div>
-                <div className="p-3 bg-green-100 rounded-full">
-                  <CheckCircle className="h-6 w-6 text-green-600" />
+                <div className="p-2 sm:p-3 bg-purple-100 rounded-full">
+                  <DollarSign className="h-4 w-4 sm:h-6 sm:w-6 text-purple-600" />
                 </div>
               </div>
             </div>
             
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+            <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Pending Amount</p>
-                  <p className="text-2xl font-bold text-red-600">₹{stats.unpaidRevenue}</p>
+                  <p className="text-xs sm:text-sm font-medium text-gray-600">Paid Amount</p>
+                  <p className="text-xl sm:text-2xl font-bold text-green-600">₹{stats.paidRevenue}</p>
                 </div>
-                <div className="p-3 bg-red-100 rounded-full">
-                  <Clock className="h-6 w-6 text-red-600" />
+                <div className="p-2 sm:p-3 bg-green-100 rounded-full">
+                  <CheckCircle className="h-4 w-4 sm:h-6 sm:w-6 text-green-600" />
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs sm:text-sm font-medium text-gray-600">Pending Amount</p>
+                  <p className="text-xl sm:text-2xl font-bold text-red-600">₹{stats.unpaidRevenue}</p>
+                </div>
+                <div className="p-2 sm:p-3 bg-red-100 rounded-full">
+                  <Clock className="h-4 w-4 sm:h-6 sm:w-6 text-red-600" />
                 </div>
               </div>
             </div>
           </div>
 
+          {/* Debug Information */}
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+            <div className="flex items-center space-x-2 mb-2">
+              <AlertCircle className="h-5 w-5 text-blue-600" />
+              <span className="font-semibold text-blue-900">System Information</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-blue-800">
+              <div>
+                <span className="font-medium">Total Bills Found:</span> {roomBills.length}
+              </div>
+              <div>
+                <span className="font-medium">Filtered Bills:</span> {filteredBills.length}
+              </div>
+              <div>
+                <span className="font-medium">Last Refresh:</span> {formatTime(lastRefresh)}
+              </div>
+            </div>
+          </div>
+
           {/* Filters */}
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 mb-8">
+          <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-100 mb-8">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
               <div className="relative">
                 <Search className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
@@ -331,6 +417,14 @@ const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 w-full md:w-80"
                 />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm('')}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-300"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
               </div>
               
               <div className="flex items-center space-x-2">
@@ -340,9 +434,9 @@ const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
                   onChange={(e) => setStatusFilter(e.target.value as 'all' | 'paid' | 'unpaid')}
                   className="border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
                 >
-                  <option value="all">All Bills</option>
-                  <option value="paid">Paid Bills</option>
-                  <option value="unpaid">Unpaid Bills</option>
+                  <option value="all">All Bills ({roomBills.length})</option>
+                  <option value="paid">Paid Bills ({stats.paidRooms})</option>
+                  <option value="unpaid">Unpaid Bills ({stats.unpaidRooms})</option>
                 </select>
               </div>
             </div>
@@ -352,8 +446,23 @@ const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
           {filteredBills.length === 0 ? (
             <div className="text-center py-16">
               <CreditCard className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">No Bills Found</h3>
-              <p className="text-gray-600">No room bills match your current filters.</p>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                {roomBills.length === 0 ? 'No Bills Found' : 'No Matching Bills'}
+              </h3>
+              <p className="text-gray-600 mb-4">
+                {roomBills.length === 0 
+                  ? 'No room bills available. Bills will appear here when customers place orders.'
+                  : 'No room bills match your current search and filter criteria.'
+                }
+              </p>
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                >
+                  Clear Search
+                </button>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -389,22 +498,19 @@ const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
                     <div className="mb-4">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium text-gray-600">Total Orders</span>
-                        <span className="font-semibold text-gray-900">{bill.orders.length}</span>
+                        <span className="font-semibold text-gray-900">{bill.orderCount}</span>
                       </div>
                       
-                      {/* Show customer info from latest order */}
-                      {bill.orders.length > 0 && (
-                        <div className="bg-gray-50 p-3 rounded-lg">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <User className="h-4 w-4 text-gray-600" />
-                            <span className="font-semibold text-gray-900">{bill.orders[0].customerDetails.name}</span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Phone className="h-4 w-4 text-gray-600" />
-                            <span className="text-gray-700">{bill.orders[0].customerDetails.mobile}</span>
-                          </div>
+                      <div className="bg-gray-50 p-3 rounded-lg">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <User className="h-4 w-4 text-gray-600" />
+                          <span className="font-semibold text-gray-900">{bill.customerName}</span>
                         </div>
-                      )}
+                        <div className="flex items-center space-x-2">
+                          <Phone className="h-4 w-4 text-gray-600" />
+                          <span className="text-gray-700">+91 {bill.customerMobile}</span>
+                        </div>
+                      </div>
                     </div>
 
                     <div className="flex justify-between items-center mb-4 p-3 bg-gradient-to-r from-amber-50 to-amber-100 rounded-xl">
@@ -454,7 +560,7 @@ const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                  Room {selectedRoom.roomNumber} - Bill Details
+                  Room {selectedRoom.roomNumber} - Complete Bill Details
                 </h3>
                 <button
                   onClick={() => setSelectedRoom(null)}
@@ -482,7 +588,7 @@ const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     <div>
                       <span className="text-gray-600">Total Orders:</span>
-                      <p className="font-semibold text-lg">{selectedRoom.orders.length}</p>
+                      <p className="font-semibold text-lg">{selectedRoom.orderCount}</p>
                     </div>
                     <div>
                       <span className="text-gray-600">Last Order:</span>
@@ -497,43 +603,50 @@ const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
                 </div>
 
                 {/* Customer Information */}
-                {selectedRoom.orders.length > 0 && (
-                  <div className="bg-gray-50 p-4 rounded-xl">
-                    <h4 className="font-semibold text-gray-900 mb-3">Customer Information</h4>
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <User className="h-4 w-4 text-gray-600" />
-                        <span className="font-semibold">{selectedRoom.orders[0].customerDetails.name}</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Phone className="h-4 w-4 text-gray-600" />
-                        <span>{selectedRoom.orders[0].customerDetails.mobile}</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <MapPin className="h-4 w-4 text-gray-600" />
-                        <span>Room {selectedRoom.orders[0].customerDetails.roomNumber}</span>
-                      </div>
+                <div className="bg-gray-50 p-4 rounded-xl">
+                  <h4 className="font-semibold text-gray-900 mb-3">Customer Information</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <User className="h-4 w-4 text-gray-600" />
+                      <span className="font-semibold">{selectedRoom.customerName}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Phone className="h-4 w-4 text-gray-600" />
+                      <span>+91 {selectedRoom.customerMobile}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <MapPin className="h-4 w-4 text-gray-600" />
+                      <span>Room {selectedRoom.roomNumber}</span>
                     </div>
                   </div>
-                )}
+                </div>
 
                 {/* Orders List */}
                 <div className="bg-gray-50 p-4 rounded-xl">
-                  <h4 className="font-semibold text-gray-900 mb-3">Order History</h4>
+                  <h4 className="font-semibold text-gray-900 mb-3">Complete Order History ({selectedRoom.orders.length} orders)</h4>
                   <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {selectedRoom.orders.map((order) => (
+                    {selectedRoom.orders.map((order, index) => (
                       <div key={order.id} className="bg-white p-4 rounded-lg border border-gray-200">
                         <div className="flex justify-between items-start mb-3">
                           <div>
-                            <h5 className="font-semibold text-gray-900">Order #{order.id}</h5>
+                            <h5 className="font-semibold text-gray-900">Order #{order.id} ({index + 1}/{selectedRoom.orders.length})</h5>
                             <p className="text-sm text-gray-600">{formatDate(order.timestamp)}</p>
+                            <span className={`inline-block px-2 py-1 rounded-full text-xs font-bold mt-1 ${
+                              order.status === 'new' ? 'bg-red-100 text-red-800' :
+                              order.status === 'preparing' ? 'bg-yellow-100 text-yellow-800' :
+                              order.status === 'ready' ? 'bg-blue-100 text-blue-800' :
+                              'bg-green-100 text-green-800'
+                            }`}>
+                              {order.status.toUpperCase()}
+                            </span>
                           </div>
                           <span className="text-lg font-bold text-amber-600">₹{order.total}</span>
                         </div>
                         
                         <div className="space-y-1">
+                          <p className="text-sm font-medium text-gray-700 mb-2">Items ({order.items.length}):</p>
                           {order.items.map((item) => (
-                            <div key={item.id} className="flex justify-between text-sm">
+                            <div key={item.id} className="flex justify-between text-sm bg-gray-50 p-2 rounded">
                               <span className="flex items-center space-x-2">
                                 <span className={`w-2 h-2 rounded-full ${item.veg ? 'bg-green-500' : 'bg-red-500'}`}></span>
                                 <span>{item.name} x{item.quantity}</span>
