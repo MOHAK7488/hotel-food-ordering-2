@@ -944,19 +944,43 @@ function App() {
                         type="tel"
                         value={customerDetails.mobile}
                         onChange={(e) => {
-                          handleMobileChange(e.target.value);
-                        }}
-                        className={`w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-2 sm:py-3 border rounded-xl focus:ring-2 focus:border-transparent transition-all duration-300 text-sm sm:text-base ${
-                          mobileError 
+                          try {
+                            const value = e.target.value.replace(/\D/g, '');
+                            if (value.length <= 10) {
+                              setCustomerDetails(prev => ({ ...prev, mobile: value }));
+                            }
+                          } catch (error) {
+                            console.error('Error updating mobile number:', error);
+                          }
                             ? 'border-red-300 focus:ring-red-500 bg-red-50' 
                             : customerDetails.mobile.length === 10 && isValidMobileNumber(customerDetails.mobile)
                             ? 'border-green-300 focus:ring-green-500 bg-green-50'
                             : 'border-gray-300 focus:ring-amber-500'
+                        className={`w-full pl-10 sm:pl-12 pr-10 sm:pr-12 py-2 sm:py-3 border rounded-xl focus:ring-2 focus:border-transparent transition-all duration-300 text-sm sm:text-base ${
+                          customerDetails.mobile.length === 0 
+                            ? 'border-gray-300 focus:ring-amber-500' 
+                            : customerDetails.mobile.length === 10 && /^[6-9]/.test(customerDetails.mobile)
+                            ? 'border-green-300 bg-green-50 focus:ring-green-500'
+                            : 'border-red-300 bg-red-50 focus:ring-red-500'
                         }`}
                         placeholder="Enter 10-digit mobile number"
                         maxLength={10}
                         required
                       />
+                      {/* Validation Icon */}
+                      {customerDetails.mobile.length > 0 && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          {customerDetails.mobile.length === 10 && /^[6-9]/.test(customerDetails.mobile) ? (
+                            <div className="flex items-center space-x-1 text-green-600">
+                              <CheckCircle className="h-4 w-4" />
+                            </div>
+                          ) : (
+                            <div className="flex items-center space-x-1 text-red-600">
+                              <X className="h-4 w-4" />
+                            </div>
+                          )}
+                        </div>
+                      )}
                       {/* Validation Icons */}
                       {customerDetails.mobile.length > 0 && (
                         <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
@@ -1020,6 +1044,39 @@ function App() {
                       <span>Total:</span>
                       <span className="text-amber-600">₹{getCartTotal()}</span>
                     </div>
+                    
+                    {/* Validation Messages */}
+                    {customerDetails.mobile.length > 0 && (
+                      <div className="mt-2">
+                        {customerDetails.mobile.length === 10 && /^[6-9]/.test(customerDetails.mobile) ? (
+                          <p className="text-sm text-green-600 flex items-center space-x-1">
+                            <CheckCircle className="h-3 w-3" />
+                            <span>Valid mobile number</span>
+                          </p>
+                        ) : (
+                          <div className="space-y-1">
+                            {customerDetails.mobile.length !== 10 && (
+                              <p className="text-sm text-red-600 flex items-center space-x-1">
+                                <X className="h-3 w-3" />
+                                <span>Mobile number must be exactly 10 digits</span>
+                              </p>
+                            )}
+                            {customerDetails.mobile.length === 10 && !/^[6-9]/.test(customerDetails.mobile) && (
+                              <p className="text-sm text-red-600 flex items-center space-x-1">
+                                <X className="h-3 w-3" />
+                                <span>Mobile number must start with 6, 7, 8, or 9</span>
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {customerDetails.mobile.length === 0 && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9
+                      </p>
+                    )}
                   </div>
 
                   <div className="bg-blue-50 p-3 sm:p-4 rounded-xl">
@@ -1034,6 +1091,12 @@ function App() {
                   <button
                     type="submit"
                     disabled={
+                      !customerDetails.name || 
+                      !customerDetails.mobile || 
+                      !customerDetails.roomNumber ||
+                      customerDetails.mobile.length !== 10 ||
+                      !/^[6-9]/.test(customerDetails.mobile)
+                    }
                       !customerDetails.name || 
                       !customerDetails.mobile || 
                       !customerDetails.roomNumber || 
