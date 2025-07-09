@@ -632,7 +632,7 @@ function App() {
                 <Search className="h-5 w-5 text-gray-400 absolute left-4 top-1/2 transform -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Search for dishes, ingredients, or categories..."
+                  placeholder="Search for dishes"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-12 pr-4 py-3 sm:py-4 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-300 text-sm sm:text-base bg-white/90 backdrop-blur-sm shadow-lg"
