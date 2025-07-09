@@ -58,7 +58,7 @@ function App() {
           description: "Marinated cottage cheese cubes grilled to perfection with aromatic spices",
           category: "Starters",
           veg: true,
-          image: "https://images.pexels.com/photos/4449068/pexels-photo-4449068.jpeg?auto=compress&cs=tinysrgb&w=400",
+          image: "https://t4.ftcdn.net/jpg/05/20/08/67/360_F_520086700_0fYFa0RIaZCcSpH0zDcVNjzHm2NKcih1.jpg?auto=compress&cs=tinysrgb&w=400",
           popular: true
         },
         {
