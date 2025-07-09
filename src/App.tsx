@@ -68,7 +68,7 @@ function App() {
           description: "Tender chicken pieces marinated in yogurt and spices, grilled in tandoor",
           category: "Starters",
           veg: false,
-          image: "https://images.pexels.com/photos/5410400/pexels-photo-5410400.jpeg?auto=compress&cs=tinysrgb&w=400",
+          image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT3e_07ATCc94ypo04FWBOqbjFFfw3FijtpHA&s?auto=compress&cs=tinysrgb&w=400",
           popular: true,
           spicy: true
         },
@@ -79,7 +79,7 @@ function App() {
           description: "Crispy rolls filled with fresh vegetables and served with sweet chili sauce",
           category: "Starters",
           veg: true,
-          image: "https://images.pexels.com/photos/4449068/pexels-photo-4449068.jpeg?auto=compress&cs=tinysrgb&w=400"
+          image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSjN8NkuHeKUXKy1Rjer7IxwH-DgpOrplIxtg&s?auto=compress&cs=tinysrgb&w=400"
         },
         {
           id: 4,
@@ -88,7 +88,7 @@ function App() {
           description: "Crispy fried fish marinated with traditional Punjabi spices",
           category: "Starters",
           veg: false,
-          image: "https://images.pexels.com/photos/5410400/pexels-photo-5410400.jpeg?auto=compress&cs=tinysrgb&w=400",
+          image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSceHCm-rW5hVzHIDIJ9t3SmJPwmc6-gtjQ3w&s?auto=compress&cs=tinysrgb&w=400",
           spicy: true
         },
         {
@@ -98,7 +98,7 @@ function App() {
           description: "Creamy tomato-based curry with tender chicken pieces and aromatic spices",
           category: "Main Course",
           veg: false,
-          image: "https://images.pexels.com/photos/5410400/pexels-photo-5410400.jpeg?auto=compress&cs=tinysrgb&w=400",
+          image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRbcwxfgt5uIr4MlF8PLy48NI1rvX37Q8gq5w&s?auto=compress&cs=tinysrgb&w=400",
           popular: true
         },
         {
@@ -108,7 +108,7 @@ function App() {
           description: "Rich and creamy black lentils slow-cooked with butter and cream",
           category: "Main Course",
           veg: true,
-          image: "https://images.pexels.com/photos/4449068/pexels-photo-4449068.jpeg?auto=compress&cs=tinysrgb&w=400",
+          image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS0682ESG4X3hRMUEvcTCeob4kv2ZU7QVqBXw&s?auto=compress&cs=tinysrgb&w=400",
           popular: true
         },
         {
