@@ -954,7 +954,6 @@ function App() {
                       <span className="font-semibold text-blue-900 text-sm sm:text-base">Payment Method</span>
                     </div>
                     <p className="text-blue-800 text-xs sm:text-sm font-medium">Pay at checkout on reception using UPI, cash or card</p>
-                    <p className="text-blue-600 text-xs mt-1">Complete payment when you collect your order at the reception</p>
                   </div>
 
                   <button
