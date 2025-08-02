@@ -16,6 +16,7 @@ import {
   ArrowLeft,
   RefreshCw
 } from 'lucide-react';
+import { useOrders, useRoomBills } from '../hooks/useDatabase';
 
 interface OrderItem {
   id: number;
@@ -28,31 +29,30 @@ interface OrderItem {
 interface CustomerDetails {
   name: string;
   mobile: string;
-  roomNumber: string;
+  room_number: string;
 }
 
 interface RoomOrder {
   id: string;
   items: OrderItem[];
-  customerDetails: CustomerDetails;
+  customer_details: CustomerDetails;
   total: number;
   timestamp: Date;
   status: 'new' | 'preparing' | 'ready' | 'delivered';
-  paymentMethod: string;
-  billPaid?: boolean;
+  payment_method: string;
+  bill_paid?: boolean;
 }
 
 interface RoomBill {
-  billId: string; // Unique identifier for each bill (room + mobile combination)
-  roomNumber: string;
+  id: string; // Unique identifier for each bill (room + mobile combination)
+  room_number: string;
+  customer_name: string;
+  customer_mobile: string;
   orders: RoomOrder[];
-  totalAmount: number;
-  isPaid: boolean;
-  lastOrderDate: Date;
-  firstOrderDate: Date;
-  customerName: string;
-  customerMobile: string;
-  orderCount: number;
+  total_amount: number;
+  is_paid: boolean;
+  created_at: Date;
+  updated_at: Date;
 }
 
 interface RoomBillingProps {
@@ -60,156 +60,50 @@ interface RoomBillingProps {
 }
 
 const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
-  const [roomBills, setRoomBills] = useState<RoomBill[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<RoomBill | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'paid' | 'unpaid'>('all');
-  const [isLoading, setIsLoading] = useState(true);
-  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
-  const loadRoomBills = () => {
-    console.log('Loading room bills...');
-    setIsLoading(true);
-    
-    try {
-      const savedOrders = localStorage.getItem('hotelOrders');
-      const savedBills = localStorage.getItem('hotelRoomBills');
-      
-      console.log('Saved orders:', savedOrders);
-      console.log('Saved bills:', savedBills);
-      
-      if (savedOrders) {
-        const allOrders: RoomOrder[] = JSON.parse(savedOrders).map((order: any) => ({
-          ...order,
-          timestamp: new Date(order.timestamp),
-          billPaid: order.billPaid || false
-        }));
-
-        console.log('All orders loaded:', allOrders.length);
-
-        // Group orders by room number AND mobile number (unique customer per room)
-        const customerBillsMap = new Map<string, RoomOrder[]>();
-        
-        allOrders.forEach(order => {
-          // Create unique bill ID using room number + mobile number
-          const billId = `${order.customerDetails.roomNumber}-${order.customerDetails.mobile}`;
-          if (!customerBillsMap.has(billId)) {
-            customerBillsMap.set(billId, []);
-          }
-          customerBillsMap.get(billId)!.push(order);
-        });
-
-        console.log('Customer bills map:', customerBillsMap);
-
-        // Load saved bill payment status
-        const savedBillStatus = savedBills ? JSON.parse(savedBills) : {};
-        console.log('Saved bill status:', savedBillStatus);
-
-        // Create room bills for each unique customer-room combination
-        const bills: RoomBill[] = Array.from(customerBillsMap.entries()).map(([billId, orders]) => {
-          const totalAmount = orders.reduce((sum, order) => sum + order.total, 0);
-          const sortedOrders = orders.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-          const lastOrderDate = new Date(Math.max(...orders.map(order => order.timestamp.getTime())));
-          const firstOrderDate = new Date(Math.min(...orders.map(order => order.timestamp.getTime())));
-          const isPaid = savedBillStatus[billId] || false;
-          
-          // Get customer details from the most recent order
-          const latestOrder = sortedOrders[0];
-
-          return {
-            billId,
-            roomNumber: latestOrder.customerDetails.roomNumber,
-            orders: sortedOrders,
-            totalAmount,
-            isPaid,
-            lastOrderDate,
-            firstOrderDate,
-            customerName: latestOrder.customerDetails.name,
-            customerMobile: latestOrder.customerDetails.mobile,
-            orderCount: orders.length
-          };
-        });
-
-        // Sort by last order date (most recent first)
-        bills.sort((a, b) => b.lastOrderDate.getTime() - a.lastOrderDate.getTime());
-        
-        console.log('Final bills:', bills);
-        setRoomBills(bills);
-      } else {
-        console.log('No saved orders found');
-        setRoomBills([]);
-      }
-    } catch (error) {
-      console.error('Error loading room bills:', error);
-      setRoomBills([]);
-    }
-    
-    setIsLoading(false);
-    setLastRefresh(new Date());
-  };
-
-  useEffect(() => {
-    loadRoomBills();
-
-    // Set up real-time updates every 3 seconds
-    const interval = setInterval(loadRoomBills, 3000);
-    return () => clearInterval(interval);
-  }, []);
+  // Use database hooks
+  const { orders } = useOrders();
+  const { roomBills, updateBillPaymentStatus, loading: billsLoading, error: billsError } = useRoomBills();
 
   const markBillAsPaid = (billId: string) => {
-    console.log('Marking bill as paid for bill ID:', billId);
-    
-    const updatedBills = roomBills.map(bill => 
-      bill.billId === billId ? { ...bill, isPaid: true } : bill
-    );
-    setRoomBills(updatedBills);
-
-    // Save bill payment status using billId (room + mobile combination)
-    const billStatus = updatedBills.reduce((acc, bill) => {
-      acc[bill.billId] = bill.isPaid;
-      return acc;
-    }, {} as Record<string, boolean>);
-    
-    localStorage.setItem('hotelRoomBills', JSON.stringify(billStatus));
-    console.log('Updated bill status saved:', billStatus);
-
-    // Update selected room if it's the one being modified
-    if (selectedRoom && selectedRoom.billId === billId) {
-      setSelectedRoom({ ...selectedRoom, isPaid: true });
-    }
+    updateBillPaymentStatus(billId, true)
+      .then(() => {
+        // Update selected room if it's the one being modified
+        if (selectedRoom && selectedRoom.id === billId) {
+          setSelectedRoom({ ...selectedRoom, is_paid: true });
+        }
+      })
+      .catch((error) => {
+        console.error('Error updating bill payment status:', error);
+        alert('Failed to update payment status. Please try again.');
+      });
   };
 
   const markBillAsUnpaid = (billId: string) => {
-    console.log('Marking bill as unpaid for bill ID:', billId);
-    
-    const updatedBills = roomBills.map(bill => 
-      bill.billId === billId ? { ...bill, isPaid: false } : bill
-    );
-    setRoomBills(updatedBills);
-
-    // Save bill payment status using billId (room + mobile combination)
-    const billStatus = updatedBills.reduce((acc, bill) => {
-      acc[bill.billId] = bill.isPaid;
-      return acc;
-    }, {} as Record<string, boolean>);
-    
-    localStorage.setItem('hotelRoomBills', JSON.stringify(billStatus));
-    console.log('Updated bill status saved:', billStatus);
-
-    // Update selected room if it's the one being modified
-    if (selectedRoom && selectedRoom.billId === billId) {
-      setSelectedRoom({ ...selectedRoom, isPaid: false });
-    }
+    updateBillPaymentStatus(billId, false)
+      .then(() => {
+        // Update selected room if it's the one being modified
+        if (selectedRoom && selectedRoom.id === billId) {
+          setSelectedRoom({ ...selectedRoom, is_paid: false });
+        }
+      })
+      .catch((error) => {
+        console.error('Error updating bill payment status:', error);
+        alert('Failed to update payment status. Please try again.');
+      });
   };
 
   const filteredBills = roomBills.filter(bill => {
-    const matchesSearch = bill.roomNumber.includes(searchTerm) ||
-                         bill.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         bill.customerMobile.includes(searchTerm);
+    const matchesSearch = bill.room_number.includes(searchTerm) ||
+                         bill.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         bill.customer_mobile.includes(searchTerm);
     
     const matchesStatus = statusFilter === 'all' || 
-                         (statusFilter === 'paid' && bill.isPaid) ||
-                         (statusFilter === 'unpaid' && !bill.isPaid);
+                         (statusFilter === 'paid' && bill.is_paid) ||
+                         (statusFilter === 'unpaid' && !bill.is_paid);
     
     return matchesSearch && matchesStatus;
   });
@@ -234,13 +128,13 @@ const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
 
   const getTotalStats = () => {
     const totalBills = roomBills.length;
-    const paidBills = roomBills.filter(bill => bill.isPaid).length;
-    const unpaidBills = roomBills.filter(bill => !bill.isPaid).length;
-    const totalRevenue = roomBills.reduce((sum, bill) => sum + bill.totalAmount, 0);
-    const paidRevenue = roomBills.filter(bill => bill.isPaid).reduce((sum, bill) => sum + bill.totalAmount, 0);
-    const unpaidRevenue = roomBills.filter(bill => !bill.isPaid).reduce((sum, bill) => sum + bill.totalAmount, 0);
-    const totalOrders = roomBills.reduce((sum, bill) => sum + bill.orderCount, 0);
-    const uniqueRooms = new Set(roomBills.map(bill => bill.roomNumber)).size;
+    const paidBills = roomBills.filter(bill => bill.is_paid).length;
+    const unpaidBills = roomBills.filter(bill => !bill.is_paid).length;
+    const totalRevenue = roomBills.reduce((sum, bill) => sum + bill.total_amount, 0);
+    const paidRevenue = roomBills.filter(bill => bill.is_paid).reduce((sum, bill) => sum + bill.total_amount, 0);
+    const unpaidRevenue = roomBills.filter(bill => !bill.is_paid).reduce((sum, bill) => sum + bill.total_amount, 0);
+    const totalOrders = orders.length;
+    const uniqueRooms = new Set(roomBills.map(bill => bill.room_number)).size;
 
     return {
       totalBills,
@@ -256,7 +150,7 @@ const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
 
   const stats = getTotalStats();
 
-  if (isLoading) {
+  if (billsLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center">
@@ -290,18 +184,11 @@ const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
                     Customer Billing Management
                   </h1>
                   <p className="text-sm text-gray-600">
-                    Separate bills for each customer • Last updated: {formatTime(lastRefresh)}
+                    Separate bills for each customer • Real-time updates
                   </p>
                 </div>
               </div>
             </div>
-            <button
-              onClick={loadRoomBills}
-              className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-            >
-              <RefreshCw className="h-4 w-4" />
-              <span>Refresh</span>
-            </button>
           </div>
         </div>
       </header>
@@ -421,7 +308,7 @@ const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
                 <span className="font-medium">Customer Bills Found:</span> {roomBills.length}
               </div>
               <div>
-                <span className="font-medium">Last Refresh:</span> {formatTime(lastRefresh)}
+                <span className="font-medium">Database:</span> Real-time synchronization
               </div>
             </div>
           </div>
@@ -464,7 +351,14 @@ const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
           </div>
 
           {/* Room Bills List */}
-          {filteredBills.length === 0 ? (
+          {billsError ? (
+            <div className="text-center py-16">
+              <CreditCard className="h-16 w-16 text-red-300 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-red-900 mb-2">Database Connection Error</h3>
+              <p className="text-red-600 mb-4">Unable to load room bills. Please check your database connection.</p>
+              <p className="text-sm text-red-500">{billsError}</p>
+            </div>
+          ) : filteredBills.length === 0 ? (
             <div className="text-center py-16">
               <CreditCard className="h-16 w-16 text-gray-300 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
@@ -489,9 +383,9 @@ const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
               {filteredBills.map((bill) => (
                 <div
-                  key={bill.billId}
+                  key={bill.id}
                   className={`bg-white rounded-2xl shadow-lg border overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 ${
-                    !bill.isPaid ? 'border-red-200 ring-2 ring-red-100' : 'border-green-200 ring-2 ring-green-100'
+                    !bill.is_paid ? 'border-red-200 ring-2 ring-red-100' : 'border-green-200 ring-2 ring-green-100'
                   }`}
                 >
                   <div className="p-6">
@@ -499,47 +393,47 @@ const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
                       <div>
                         <h3 className="text-xl font-bold text-gray-900 flex items-center">
                           <MapPin className="h-5 w-5 mr-2 text-blue-600" />
-                          Room {bill.roomNumber}
+                          Room {bill.room_number}
                         </h3>
                         <p className="text-sm text-gray-600 flex items-center mt-1">
                           <Calendar className="h-4 w-4 mr-1" />
-                          {formatDate(bill.firstOrderDate)} - {formatDate(bill.lastOrderDate)}
+                          {formatDate(bill.created_at)} - {formatDate(bill.updated_at)}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
-                          Bill ID: {bill.billId}
+                          Bill ID: {bill.id}
                         </p>
                       </div>
                       <span className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center space-x-1 ${
-                        bill.isPaid 
+                        bill.is_paid 
                           ? 'bg-green-100 text-green-800 border-green-200' 
                           : 'bg-red-100 text-red-800 border-red-200'
                       }`}>
-                        {bill.isPaid ? <CheckCircle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
-                        <span>{bill.isPaid ? 'PAID' : 'UNPAID'}</span>
+                        {bill.is_paid ? <CheckCircle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+                        <span>{bill.is_paid ? 'PAID' : 'UNPAID'}</span>
                       </span>
                     </div>
 
                     <div className="mb-4">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium text-gray-600">Total Orders</span>
-                        <span className="font-semibold text-gray-900">{bill.orderCount}</span>
+                        <span className="font-semibold text-gray-900">{orders.filter(o => o.customer_details.room_number === bill.room_number && o.customer_details.mobile === bill.customer_mobile).length}</span>
                       </div>
                       
                       <div className="bg-gray-50 p-3 rounded-lg">
                         <div className="flex items-center space-x-2 mb-1">
                           <User className="h-4 w-4 text-gray-600" />
-                          <span className="font-semibold text-gray-900">{bill.customerName}</span>
+                          <span className="font-semibold text-gray-900">{bill.customer_name}</span>
                         </div>
                         <div className="flex items-center space-x-2">
                           <Phone className="h-4 w-4 text-gray-600" />
-                          <span className="text-gray-700">+91 {bill.customerMobile}</span>
+                          <span className="text-gray-700">+91 {bill.customer_mobile}</span>
                         </div>
                       </div>
                     </div>
 
                     <div className="flex justify-between items-center mb-4 p-3 bg-gradient-to-r from-amber-50 to-amber-100 rounded-xl">
                       <span className="font-bold text-gray-900">Total Bill</span>
-                      <span className="text-xl font-bold text-amber-600">₹{bill.totalAmount}</span>
+                      <span className="text-xl font-bold text-amber-600">₹{bill.total_amount}</span>
                     </div>
 
                     <div className="flex space-x-2">
@@ -551,9 +445,9 @@ const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
                         <span>View Details</span>
                       </button>
                       
-                      {!bill.isPaid ? (
+                      {!bill.is_paid ? (
                         <button
-                          onClick={() => markBillAsPaid(bill.billId)}
+                          onClick={() => markBillAsPaid(bill.id)}
                           className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-2 px-4 rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-300 flex items-center justify-center space-x-2"
                         >
                           <CheckCircle className="h-4 w-4" />
@@ -561,7 +455,7 @@ const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
                         </button>
                       ) : (
                         <button
-                          onClick={() => markBillAsUnpaid(bill.billId)}
+                          onClick={() => markBillAsUnpaid(bill.id)}
                           className="flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white py-2 px-4 rounded-xl hover:from-red-700 hover:to-red-800 transition-all duration-300 flex items-center justify-center space-x-2"
                         >
                           <Clock className="h-4 w-4" />
@@ -584,7 +478,7 @@ const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                  Customer Bill Details - Room {selectedRoom.roomNumber}
+                  Customer Bill Details - Room {selectedRoom.room_number}
                 </h3>
                 <button
                   onClick={() => setSelectedRoom(null)}
@@ -596,41 +490,41 @@ const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
 
               <div className="space-y-6">
                 {/* Bill Summary */}
-                <div className="bg-gradient-to-r from-amber-50 to-amber-100 p-6 rounded-xl border border-amber-200">
+                <div className="bg-gradient-to-r from-amber-50 to-amber-100 p-4 sm:p-6 rounded-xl border border-amber-200">
                   <div className="flex justify-between items-center mb-4">
                     <h4 className="text-xl font-bold text-gray-900">Bill Summary</h4>
                     <span className={`px-4 py-2 rounded-full text-sm font-bold border flex items-center space-x-2 ${
-                      selectedRoom.isPaid 
+                      selectedRoom.is_paid 
                         ? 'bg-green-100 text-green-800 border-green-200' 
                         : 'bg-red-100 text-red-800 border-red-200'
                     }`}>
-                      {selectedRoom.isPaid ? <CheckCircle className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
-                      <span>{selectedRoom.isPaid ? 'PAID' : 'UNPAID'}</span>
+                      {selectedRoom.is_paid ? <CheckCircle className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
+                      <span>{selectedRoom.is_paid ? 'PAID' : 'UNPAID'}</span>
                     </span>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     <div>
                       <span className="text-gray-600">Bill ID:</span>
-                      <p className="font-semibold text-lg">{selectedRoom.billId}</p>
+                      <p className="font-semibold text-lg">{selectedRoom.id}</p>
                     </div>
                     <div>
                       <span className="text-gray-600">Total Orders:</span>
-                      <p className="font-semibold text-lg">{selectedRoom.orderCount}</p>
+                      <p className="font-semibold text-lg">{orders.filter(o => o.customer_details.room_number === selectedRoom.room_number && o.customer_details.mobile === selectedRoom.customer_mobile).length}</p>
                     </div>
                     <div>
                       <span className="text-gray-600">First Order:</span>
-                      <p className="font-semibold text-lg">{formatDate(selectedRoom.firstOrderDate)}</p>
+                      <p className="font-semibold text-lg">{formatDate(selectedRoom.created_at)}</p>
                     </div>
                     <div>
                       <span className="text-gray-600">Last Order:</span>
-                      <p className="font-semibold text-lg">{formatDate(selectedRoom.lastOrderDate)}</p>
+                      <p className="font-semibold text-lg">{formatDate(selectedRoom.updated_at)}</p>
                     </div>
                   </div>
                   
                   <div className="flex justify-between items-center">
                     <span className="text-xl font-bold text-gray-900">Total Amount:</span>
-                    <span className="text-3xl font-bold text-amber-600">₹{selectedRoom.totalAmount}</span>
+                    <span className="text-3xl font-bold text-amber-600">₹{selectedRoom.total_amount}</span>
                   </div>
                 </div>
 
@@ -640,28 +534,28 @@ const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2">
                       <User className="h-4 w-4 text-gray-600" />
-                      <span className="font-semibold">{selectedRoom.customerName}</span>
+                      <span className="font-semibold">{selectedRoom.customer_name}</span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Phone className="h-4 w-4 text-gray-600" />
-                      <span>+91 {selectedRoom.customerMobile}</span>
+                      <span>+91 {selectedRoom.customer_mobile}</span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <MapPin className="h-4 w-4 text-gray-600" />
-                      <span>Room {selectedRoom.roomNumber}</span>
+                      <span>Room {selectedRoom.room_number}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Orders List */}
                 <div className="bg-gray-50 p-4 rounded-xl">
-                  <h4 className="font-semibold text-gray-900 mb-3">Complete Order History ({selectedRoom.orders.length} orders)</h4>
+                  <h4 className="font-semibold text-gray-900 mb-3">Complete Order History</h4>
                   <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {selectedRoom.orders.map((order, index) => (
+                    {orders.filter(o => o.customer_details.room_number === selectedRoom.room_number && o.customer_details.mobile === selectedRoom.customer_mobile).map((order, index) => (
                       <div key={order.id} className="bg-white p-4 rounded-lg border border-gray-200">
                         <div className="flex justify-between items-start mb-3">
                           <div>
-                            <h5 className="font-semibold text-gray-900">Order #{order.id} ({index + 1}/{selectedRoom.orders.length})</h5>
+                            <h5 className="font-semibold text-gray-900">Order #{order.id}</h5>
                             <p className="text-sm text-gray-600">{formatDate(order.timestamp)}</p>
                             <span className={`inline-block px-2 py-1 rounded-full text-xs font-bold mt-1 ${
                               order.status === 'new' ? 'bg-red-100 text-red-800' :
@@ -694,9 +588,9 @@ const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
 
                 {/* Action Buttons */}
                 <div className="flex space-x-3">
-                  {!selectedRoom.isPaid ? (
+                  {!selectedRoom.is_paid ? (
                     <button
-                      onClick={() => markBillAsPaid(selectedRoom.billId)}
+                      onClick={() => markBillAsPaid(selectedRoom.id)}
                       className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-3 px-4 rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-300 flex items-center justify-center space-x-2"
                     >
                       <CheckCircle className="h-5 w-5" />
@@ -704,7 +598,7 @@ const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
                     </button>
                   ) : (
                     <button
-                      onClick={() => markBillAsUnpaid(selectedRoom.billId)}
+                      onClick={() => markBillAsUnpaid(selectedRoom.id)}
                       className="flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white py-3 px-4 rounded-xl hover:from-red-700 hover:to-red-800 transition-all duration-300 flex items-center justify-center space-x-2"
                     >
                       <Clock className="h-5 w-5" />

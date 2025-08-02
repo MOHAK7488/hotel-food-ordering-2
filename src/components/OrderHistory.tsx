@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Phone, ArrowLeft, Calendar, Package, CreditCard, X, Search, AlertCircle, History, DollarSign, CheckCircle, Clock, TrendingUp } from 'lucide-react';
+import { useOrders, useRoomBills } from '../hooks/useDatabase';
 
 interface OrderItem {
   id: number;
@@ -12,18 +13,18 @@ interface OrderItem {
 interface CustomerDetails {
   name: string;
   mobile: string;
-  roomNumber: string;
+  room_number: string;
 }
 
 interface UserOrder {
   id: string;
   items: OrderItem[];
-  customerDetails: CustomerDetails;
+  customer_details: CustomerDetails;
   total: number;
   timestamp: Date;
   status: 'new' | 'preparing' | 'ready' | 'delivered';
-  paymentMethod: string;
-  billPaid?: boolean;
+  payment_method: string;
+  bill_paid?: boolean;
 }
 
 interface PaymentSummary {
@@ -47,6 +48,10 @@ const OrderHistory: React.FC<OrderHistoryProps> = ({ onBack }) => {
   const [hasSearched, setHasSearched] = useState(false);
   const [paymentSummary, setPaymentSummary] = useState<PaymentSummary | null>(null);
 
+  // Use database hooks
+  const { getOrdersByMobile } = useOrders();
+  const { roomBills } = useRoomBills();
+
   const searchOrders = () => {
     if (mobile.length !== 10) {
       alert('Please enter a valid 10-digit mobile number');
@@ -56,33 +61,21 @@ const OrderHistory: React.FC<OrderHistoryProps> = ({ onBack }) => {
     setIsLoading(true);
     setHasSearched(true);
 
-    // Simulate API call delay
-    setTimeout(() => {
-      const savedOrders = localStorage.getItem('hotelOrders');
-      const savedBills = localStorage.getItem('hotelRoomBills');
-      
-      if (savedOrders) {
-        const allOrders = JSON.parse(savedOrders).map((order: any) => ({
-          ...order,
-          timestamp: new Date(order.timestamp)
-        }));
-        
-        // Filter orders by mobile number
-        const filteredOrders = allOrders.filter((order: UserOrder) => 
-          order.customerDetails.mobile === mobile
-        );
-        
+    getOrdersByMobile(mobile)
+      .then((orders) => {
         // Sort by timestamp (newest first)
-        filteredOrders.sort((a: UserOrder, b: UserOrder) => b.timestamp.getTime() - a.timestamp.getTime());
-        
-        // Load bill payment status
-        const billStatus = savedBills ? JSON.parse(savedBills) : {};
+        const sortedOrders = orders.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         
         // Update orders with payment status based on room billing
-        const ordersWithPaymentStatus = filteredOrders.map((order: UserOrder) => ({
-          ...order,
-          billPaid: billStatus[order.customerDetails.roomNumber] || false
-        }));
+        const ordersWithPaymentStatus = sortedOrders.map((order) => {
+          const billId = `${order.customer_details.room_number}-${order.customer_details.mobile}`;
+          const roomBill = roomBills.find(bill => bill.id === billId);
+          return {
+            ...order,
+            timestamp: new Date(order.timestamp),
+            bill_paid: roomBill?.is_paid || false
+          };
+        });
         
         setUserOrders(ordersWithPaymentStatus);
         
@@ -90,11 +83,11 @@ const OrderHistory: React.FC<OrderHistoryProps> = ({ onBack }) => {
         if (ordersWithPaymentStatus.length > 0) {
           const totalAmount = ordersWithPaymentStatus.reduce((sum, order) => sum + order.total, 0);
           const paidAmount = ordersWithPaymentStatus
-            .filter(order => order.billPaid)
+            .filter(order => order.bill_paid)
             .reduce((sum, order) => sum + order.total, 0);
           const remainingAmount = totalAmount - paidAmount;
           const totalOrders = ordersWithPaymentStatus.length;
-          const paidOrders = ordersWithPaymentStatus.filter(order => order.billPaid).length;
+          const paidOrders = ordersWithPaymentStatus.filter(order => order.bill_paid).length;
           const unpaidOrders = totalOrders - paidOrders;
           
           setPaymentSummary({
@@ -108,12 +101,14 @@ const OrderHistory: React.FC<OrderHistoryProps> = ({ onBack }) => {
         } else {
           setPaymentSummary(null);
         }
-      } else {
+        setIsLoading(false);
+      })
+      .catch((error) => {
+        console.error('Error fetching orders:', error);
         setUserOrders([]);
         setPaymentSummary(null);
-      }
-      setIsLoading(false);
-    }, 1000);
+        setIsLoading(false);
+      });
   };
 
   const getStatusColor = (status: string) => {
@@ -359,12 +354,12 @@ const OrderHistory: React.FC<OrderHistoryProps> = ({ onBack }) => {
                                 <span>{getStatusText(order.status)}</span>
                               </span>
                               <span className={`px-2 py-1 sm:px-3 sm:py-1 rounded-full text-xs font-bold border flex items-center space-x-1 ${
-                                order.billPaid 
+                                order.bill_paid 
                                   ? 'bg-green-100 text-green-800 border-green-200' 
                                   : 'bg-red-100 text-red-800 border-red-200'
                               }`}>
-                                {order.billPaid ? <CheckCircle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
-                                <span>{order.billPaid ? 'PAID' : 'UNPAID'}</span>
+                                {order.bill_paid ? <CheckCircle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+                                <span>{order.bill_paid ? 'PAID' : 'UNPAID'}</span>
                               </span>
                             </div>
                           </div>
@@ -372,11 +367,11 @@ const OrderHistory: React.FC<OrderHistoryProps> = ({ onBack }) => {
                           <div className="mb-4">
                             <div className="flex items-center space-x-2 mb-2">
                               <Package className="h-3 w-3 sm:h-4 sm:w-4 text-gray-600" />
-                              <span className="text-gray-700 text-sm sm:text-base">Room {order.customerDetails.roomNumber}</span>
+                              <span className="text-gray-700 text-sm sm:text-base">Room {order.customer_details.room_number}</span>
                             </div>
                             <div className="flex items-center space-x-2">
                               <span className="text-gray-600 text-sm sm:text-base">Customer:</span>
-                              <span className="font-semibold text-gray-900 text-sm sm:text-base">{order.customerDetails.name}</span>
+                              <span className="font-semibold text-gray-900 text-sm sm:text-base">{order.customer_details.name}</span>
                             </div>
                           </div>
 
@@ -464,7 +459,7 @@ const OrderHistory: React.FC<OrderHistoryProps> = ({ onBack }) => {
                     </div>
                     <div>
                       <span className="text-gray-600">Room:</span>
-                      <p className="font-semibold">{selectedOrder.customerDetails.roomNumber}</p>
+                      <p className="font-semibold">{selectedOrder.customer_details.room_number}</p>
                     </div>
                   </div>
                 </div>
@@ -474,11 +469,11 @@ const OrderHistory: React.FC<OrderHistoryProps> = ({ onBack }) => {
                   <div className="space-y-2">
                     <div>
                       <span className="text-gray-600 text-sm sm:text-base">Name:</span>
-                      <p className="font-semibold text-sm sm:text-base">{selectedOrder.customerDetails.name}</p>
+                      <p className="font-semibold text-sm sm:text-base">{selectedOrder.customer_details.name}</p>
                     </div>
                     <div>
                       <span className="text-gray-600 text-sm sm:text-base">Mobile:</span>
-                      <p className="font-semibold text-sm sm:text-base">+91 {selectedOrder.customerDetails.mobile}</p>
+                      <p className="font-semibold text-sm sm:text-base">+91 {selectedOrder.customer_details.mobile}</p>
                     </div>
                   </div>
                 </div>
@@ -512,18 +507,18 @@ const OrderHistory: React.FC<OrderHistoryProps> = ({ onBack }) => {
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">Payment Status:</span>
                     <span className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center space-x-1 ${
-                      selectedOrder.billPaid 
+                      selectedOrder.bill_paid 
                         ? 'bg-green-100 text-green-800 border-green-200' 
                         : 'bg-red-100 text-red-800 border-red-200'
                     }`}>
-                      {selectedOrder.billPaid ? <CheckCircle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
-                      <span>{selectedOrder.billPaid ? 'PAID' : 'UNPAID'}</span>
+                      {selectedOrder.bill_paid ? <CheckCircle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+                      <span>{selectedOrder.bill_paid ? 'PAID' : 'UNPAID'}</span>
                     </span>
                   </div>
-                  <p className="text-xs sm:text-sm text-gray-600 mt-2">Payment Method: {selectedOrder.paymentMethod}</p>
+                  <p className="text-xs sm:text-sm text-gray-600 mt-2">Payment Method: {selectedOrder.payment_method}</p>
                 </div>
 
-                {!selectedOrder.billPaid && (
+                {!selectedOrder.bill_paid && (
                   <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-xl">
                     <div className="flex items-center space-x-2 mb-2">
                       <AlertCircle className="h-5 w-5 text-yellow-600" />
