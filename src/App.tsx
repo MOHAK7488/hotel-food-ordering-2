@@ -3,6 +3,8 @@ import { ChefHat, Phone, Shield, User, Clock, Star, MapPin, Plus, Minus, Shoppin
 import ManagerLogin from './components/ManagerLogin';
 import RestaurantManager from './components/RestaurantManager';
 import OrderHistory from './components/OrderHistory';
+import DatabaseStatus from './components/DatabaseStatus';
+import { useMenuItems, useOrders } from './hooks/useDatabase';
 
 interface MenuItem {
   id: number;
@@ -39,207 +41,11 @@ function App() {
     mobile: '',
     roomNumber: ''
   });
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Load menu items from localStorage
-  useEffect(() => {
-    const savedMenu = localStorage.getItem('hotelMenuItems');
-    if (savedMenu) {
-      const parsedMenu = JSON.parse(savedMenu);
-      setMenuItems(parsedMenu);
-    } else {
-      // Initialize with default menu items if none exist
-      const defaultMenuItems: MenuItem[] = [
-        {
-          id: 1,
-          name: "Paneer Tikka",
-          price: 280,
-          description: "Marinated cottage cheese cubes grilled to perfection with aromatic spices",
-          category: "Starters",
-          veg: true,
-          image: "https://t4.ftcdn.net/jpg/05/20/08/67/360_F_520086700_0fYFa0RIaZCcSpH0zDcVNjzHm2NKcih1.jpg?auto=compress&cs=tinysrgb&w=400",
-          popular: true
-        },
-        {
-          id: 2,
-          name: "Chicken Tikka",
-          price: 320,
-          description: "Tender chicken pieces marinated in yogurt and spices, grilled in tandoor",
-          category: "Starters",
-          veg: false,
-          image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT3e_07ATCc94ypo04FWBOqbjFFfw3FijtpHA&s?auto=compress&cs=tinysrgb&w=400",
-          popular: true,
-          spicy: true
-        },
-        {
-          id: 3,
-          name: "Vegetable Spring Rolls",
-          price: 220,
-          description: "Crispy rolls filled with fresh vegetables and served with sweet chili sauce",
-          category: "Starters",
-          veg: true,
-          image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSjN8NkuHeKUXKy1Rjer7IxwH-DgpOrplIxtg&s?auto=compress&cs=tinysrgb&w=400"
-        },
-        {
-          id: 4,
-          name: "Fish Amritsari",
-          price: 380,
-          description: "Crispy fried fish marinated with traditional Punjabi spices",
-          category: "Starters",
-          veg: false,
-          image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSceHCm-rW5hVzHIDIJ9t3SmJPwmc6-gtjQ3w&s?auto=compress&cs=tinysrgb&w=400",
-          spicy: true
-        },
-        {
-          id: 5,
-          name: "Butter Chicken",
-          price: 420,
-          description: "Creamy tomato-based curry with tender chicken pieces and aromatic spices",
-          category: "Main Course",
-          veg: false,
-          image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRbcwxfgt5uIr4MlF8PLy48NI1rvX37Q8gq5w&s?auto=compress&cs=tinysrgb&w=400",
-          popular: true
-        },
-        {
-          id: 6,
-          name: "Dal Makhani",
-          price: 280,
-          description: "Rich and creamy black lentils slow-cooked with butter and cream",
-          category: "Main Course",
-          veg: true,
-          image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS0682ESG4X3hRMUEvcTCeob4kv2ZU7QVqBXw&s?auto=compress&cs=tinysrgb&w=400",
-          popular: true
-        },
-        {
-          id: 7,
-          name: "Biryani (Chicken)",
-          price: 380,
-          description: "Fragrant basmati rice cooked with tender chicken and aromatic spices",
-          category: "Main Course",
-          veg: false,
-          image: "https://images.pexels.com/photos/5410400/pexels-photo-5410400.jpeg?auto=compress&cs=tinysrgb&w=400",
-          popular: true,
-          spicy: true
-        },
-        {
-          id: 8,
-          name: "Palak Paneer",
-          price: 320,
-          description: "Fresh cottage cheese cubes in a creamy spinach gravy",
-          category: "Main Course",
-          veg: true,
-          image: "https://images.pexels.com/photos/4449068/pexels-photo-4449068.jpeg?auto=compress&cs=tinysrgb&w=400"
-        },
-        {
-          id: 9,
-          name: "Mutton Rogan Josh",
-          price: 480,
-          description: "Tender mutton cooked in aromatic Kashmiri spices and yogurt",
-          category: "Main Course",
-          veg: false,
-          image: "https://images.pexels.com/photos/5410400/pexels-photo-5410400.jpeg?auto=compress&cs=tinysrgb&w=400",
-          spicy: true
-        },
-        {
-          id: 10,
-          name: "Butter Naan",
-          price: 80,
-          description: "Soft and fluffy bread brushed with butter, baked in tandoor",
-          category: "Breads",
-          veg: true,
-          image: "https://images.pexels.com/photos/4449068/pexels-photo-4449068.jpeg?auto=compress&cs=tinysrgb&w=400"
-        },
-        {
-          id: 11,
-          name: "Garlic Naan",
-          price: 90,
-          description: "Naan bread topped with fresh garlic and herbs",
-          category: "Breads",
-          veg: true,
-          image: "https://images.pexels.com/photos/4449068/pexels-photo-4449068.jpeg?auto=compress&cs=tinysrgb&w=400"
-        },
-        {
-          id: 12,
-          name: "Tandoori Roti",
-          price: 60,
-          description: "Whole wheat bread baked in traditional tandoor",
-          category: "Breads",
-          veg: true,
-          image: "https://images.pexels.com/photos/4449068/pexels-photo-4449068.jpeg?auto=compress&cs=tinysrgb&w=400"
-        },
-        {
-          id: 13,
-          name: "Masala Chai",
-          price: 60,
-          description: "Traditional Indian tea brewed with aromatic spices",
-          category: "Beverages",
-          veg: true,
-          image: "https://images.pexels.com/photos/4449068/pexels-photo-4449068.jpeg?auto=compress&cs=tinysrgb&w=400"
-        },
-        {
-          id: 14,
-          name: "Fresh Lime Soda",
-          price: 80,
-          description: "Refreshing lime juice with soda and mint",
-          category: "Beverages",
-          veg: true,
-          image: "https://images.pexels.com/photos/4449068/pexels-photo-4449068.jpeg?auto=compress&cs=tinysrgb&w=400"
-        },
-        {
-          id: 15,
-          name: "Mango Lassi",
-          price: 120,
-          description: "Creamy yogurt drink blended with fresh mango",
-          category: "Beverages",
-          veg: true,
-          image: "https://images.pexels.com/photos/4449068/pexels-photo-4449068.jpeg?auto=compress&cs=tinysrgb&w=400"
-        },
-        {
-          id: 16,
-          name: "Gulab Jamun",
-          price: 140,
-          description: "Soft milk dumplings soaked in rose-flavored sugar syrup",
-          category: "Desserts",
-          veg: true,
-          image: "https://images.pexels.com/photos/4449068/pexels-photo-4449068.jpeg?auto=compress&cs=tinysrgb&w=400"
-        },
-        {
-          id: 17,
-          name: "Kulfi",
-          price: 100,
-          description: "Traditional Indian ice cream flavored with cardamom and pistachios",
-          category: "Desserts",
-          veg: true,
-          image: "https://images.pexels.com/photos/4449068/pexels-photo-4449068.jpeg?auto=compress&cs=tinysrgb&w=400"
-        }
-      ];
-      setMenuItems(defaultMenuItems);
-      localStorage.setItem('hotelMenuItems', JSON.stringify(defaultMenuItems));
-    }
-  }, []);
-
-  // Listen for menu updates from MenuManager
-  useEffect(() => {
-    const handleStorageChange = () => {
-      const savedMenu = localStorage.getItem('hotelMenuItems');
-      if (savedMenu) {
-        const parsedMenu = JSON.parse(savedMenu);
-        setMenuItems(parsedMenu);
-      }
-    };
-
-    // Listen for storage changes
-    window.addEventListener('storage', handleStorageChange);
-    
-    // Also check for updates every second (for same-tab updates)
-    const interval = setInterval(handleStorageChange, 1000);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      clearInterval(interval);
-    };
-  }, []);
+  // Use database hooks
+  const { menuItems, loading: menuLoading, error: menuError } = useMenuItems();
+  const { createOrder, loading: orderLoading, error: orderError } = useOrders();
 
   // Check manager authentication on app load
   useEffect(() => {
@@ -314,7 +120,7 @@ function App() {
   const handlePlaceOrder = () => {
     if (cart.length === 0 || !customerDetails.name || !customerDetails.mobile || !customerDetails.roomNumber) return;
 
-    const order = {
+    const orderData = {
       id: Date.now().toString(),
       items: cart.map(item => ({
         id: item.id,
@@ -323,25 +129,31 @@ function App() {
         price: item.price,
         veg: item.veg
       })),
-      customerDetails: customerDetails,
+      customer_details: {
+        name: customerDetails.name,
+        mobile: customerDetails.mobile,
+        room_number: customerDetails.roomNumber
+      },
       total: getCartTotal(),
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(),
       status: 'new',
-      paymentMethod: 'Pay at checkout on reception using UPI, cash or card'
+      payment_method: 'Pay at checkout on reception using UPI, cash or card'
     };
 
-    // Save order to localStorage
-    const existingOrders = JSON.parse(localStorage.getItem('hotelOrders') || '[]');
-    existingOrders.push(order);
-    localStorage.setItem('hotelOrders', JSON.stringify(existingOrders));
-
-    // Clear cart and close checkout
-    setCart([]);
-    setShowCheckout(false);
-    setShowCart(false);
-    setCustomerDetails({ name: '', mobile: '', roomNumber: '' });
-
-    alert('Order placed successfully! You will receive updates on your order status.');
+    // Create order in database
+    createOrder(orderData)
+      .then(() => {
+        // Clear cart and close checkout
+        setCart([]);
+        setShowCheckout(false);
+        setShowCart(false);
+        setCustomerDetails({ name: '', mobile: '', roomNumber: '' });
+        alert('Order placed successfully! You will receive updates on your order status.');
+      })
+      .catch((error) => {
+        console.error('Error placing order:', error);
+        alert('Failed to place order. Please try again.');
+      });
   };
 
   const handleManagerLogin = () => {
@@ -412,6 +224,7 @@ function App() {
                   <span className="hidden sm:inline">Manager</span>
                   <span className="sm:hidden">Admin</span>
                 </button>
+                <DatabaseStatus />
               </div>
             </div>
           </div>
@@ -618,6 +431,7 @@ function App() {
                     </span>
                   )}
                 </button>
+                <DatabaseStatus />
               </div>
             </div>
           </div>
@@ -687,7 +501,21 @@ function App() {
             )}
 
             {/* Menu Items */}
-            {filteredItems.length === 0 ? (
+            {menuLoading ? (
+              <div className="text-center py-16">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading menu items...</p>
+              </div>
+            ) : menuError ? (
+              <div className="text-center py-16">
+                <Search className="h-16 w-16 text-red-300 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-red-900 mb-2">Database Connection Error</h3>
+                <p className="text-red-600 mb-4">
+                  Unable to load menu items. Please check your database connection.
+                </p>
+                <p className="text-sm text-red-500">{menuError}</p>
+              </div>
+            ) : filteredItems.length === 0 ? (
               <div className="text-center py-16">
                 <Search className="h-16 w-16 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">No dishes found</h3>
@@ -958,10 +786,17 @@ function App() {
 
                   <button
                     type="submit"
-                    disabled={!customerDetails.name || !customerDetails.mobile || !customerDetails.roomNumber}
-                    className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-3 px-4 rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-300 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none text-sm sm:text-base"
+                    disabled={!customerDetails.name || !customerDetails.mobile || !customerDetails.roomNumber || orderLoading}
+                    className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-3 px-4 rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-300 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none text-sm sm:text-base flex items-center justify-center space-x-2"
                   >
-                    Place Order (₹{getCartTotal()})
+                    {orderLoading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                        <span>Placing Order...</span>
+                      </>
+                    ) : (
+                      <span>Place Order (₹{getCartTotal()})</span>
+                    )}
                   </button>
                 </form>
               </div>

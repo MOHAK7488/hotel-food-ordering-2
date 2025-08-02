@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import RoomBilling from './RoomBilling';
 import MenuManager from './MenuManager';
+import { useOrders } from '../hooks/useDatabase';
 
 interface OrderItem {
   id: number;
@@ -48,10 +49,16 @@ interface RestaurantOrder {
   id: string;
   items: OrderItem[];
   customerDetails: CustomerDetails;
+  customer_details: {
+    name: string;
+    mobile: string;
+    room_number: string;
+  };
   total: number;
   timestamp: Date;
   status: 'new' | 'preparing' | 'ready' | 'delivered';
   paymentMethod: string;
+  payment_method: string;
   estimatedTime?: number;
   notes?: string;
 }
@@ -61,13 +68,11 @@ interface RestaurantManagerProps {
 }
 
 const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
-  const [orders, setOrders] = useState<RestaurantOrder[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<RestaurantOrder | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [notifications, setNotifications] = useState<number>(0);
   const [sessionTimeLeft, setSessionTimeLeft] = useState<string>('');
-  const [lastOrderCount, setLastOrderCount] = useState<number>(0);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [newOrderAlert, setNewOrderAlert] = useState<boolean>(false);
   const [showRoomBilling, setShowRoomBilling] = useState<boolean>(false);
@@ -82,6 +87,9 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
     orderId: string;
     read: boolean;
   }>>([]);
+  
+  // Use database hooks
+  const { orders, updateOrderStatus: dbUpdateOrderStatus, loading: ordersLoading, error: ordersError } = useOrders();
   
   // Audio context for notification sound
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -251,67 +259,45 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
     return () => clearInterval(sessionInterval);
   }, [onLogout]);
 
-  // Load orders from localStorage and listen for new orders with real-time updates
+  // Listen for new orders with real-time updates
   useEffect(() => {
-    const loadOrders = () => {
-      const savedOrders = localStorage.getItem('hotelOrders');
-      if (savedOrders) {
-        const parsedOrders = JSON.parse(savedOrders).map((order: any) => ({
-          ...order,
-          timestamp: new Date(order.timestamp)
-        }));
+    if (orders.length > 0) {
+      // Check for new orders by comparing order IDs
+      const currentOrderIds = new Set(orders.map((order: RestaurantOrder) => order.id));
+      const newOrderIds = [...currentOrderIds].filter(id => !lastOrderIds.has(id));
+      
+      // If there are new orders and we have previous orders, show notification
+      if (newOrderIds.length > 0 && lastOrderIds.size > 0) {
+        console.log('New orders detected:', newOrderIds);
+        playNotificationSound();
+        setNewOrderAlert(true);
         
-        // Check for new orders by comparing order IDs
-        const currentOrderIds = new Set(parsedOrders.map((order: RestaurantOrder) => order.id));
-        const newOrderIds = [...currentOrderIds].filter(id => !lastOrderIds.has(id));
+        // Add notifications for new orders
+        newOrderIds.forEach(orderId => {
+          const newOrder = orders.find((order: RestaurantOrder) => order.id === orderId);
+          if (newOrder) {
+            addNotification(
+              `New order #${orderId} from Room ${newOrder.customer_details.room_number}`,
+              'new_order',
+              orderId
+            );
+          }
+        });
         
-        // If there are new orders and we have previous orders, show notification
-        if (newOrderIds.length > 0 && lastOrderIds.size > 0) {
-          console.log('New orders detected:', newOrderIds);
-          playNotificationSound();
-          setNewOrderAlert(true);
-          
-          // Add notifications for new orders
-          newOrderIds.forEach(orderId => {
-            const newOrder = parsedOrders.find((order: RestaurantOrder) => order.id === orderId);
-            if (newOrder) {
-              addNotification(
-                `New order #${orderId} from Room ${newOrder.customerDetails.roomNumber}`,
-                'new_order',
-                orderId
-              );
-            }
-          });
-          
-          // Show alert for 5 seconds
-          setTimeout(() => {
-            setNewOrderAlert(false);
-          }, 5000);
-        }
-        
-        // Update last order IDs
-        setLastOrderIds(currentOrderIds);
-        
-        setOrders(parsedOrders);
-        setLastOrderCount(parsedOrders.length);
-        
-        // Count new orders for notifications
-        const newOrdersCount = parsedOrders.filter((order: RestaurantOrder) => order.status === 'new').length;
-        setNotifications(newOrdersCount);
-      } else {
-        setOrders([]);
-        setNotifications(0);
+        // Show alert for 5 seconds
+        setTimeout(() => {
+          setNewOrderAlert(false);
+        }, 5000);
       }
-    };
-
-    // Load orders initially
-    loadOrders();
-
-    // Set up interval to check for new orders every 2 seconds for real-time updates
-    const interval = setInterval(loadOrders, 2000);
-
-    return () => clearInterval(interval);
-  }, [lastOrderIds, soundEnabled]);
+      
+      // Update last order IDs
+      setLastOrderIds(currentOrderIds);
+      
+      // Count new orders for notifications
+      const newOrdersCount = orders.filter((order: RestaurantOrder) => order.status === 'new').length;
+      setNotifications(newOrdersCount);
+    }
+  }, [orders, lastOrderIds, soundEnabled]);
 
   const handleLogout = () => {
     localStorage.removeItem('managerLoginTime');
@@ -320,30 +306,27 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
   };
 
   const updateOrderStatus = (orderId: string, newStatus: 'new' | 'preparing' | 'ready' | 'delivered') => {
-    const updatedOrders = orders.map(order => 
-      order.id === orderId ? { ...order, status: newStatus } : order
-    );
-    setOrders(updatedOrders);
-    localStorage.setItem('hotelOrders', JSON.stringify(updatedOrders));
-    
-    // Update notifications count
-    const newOrdersCount = updatedOrders.filter(order => order.status === 'new').length;
-    setNotifications(newOrdersCount);
+    dbUpdateOrderStatus(orderId, newStatus)
+      .then(() => {
+        // Add notification for status update
+        const order = orders.find(o => o.id === orderId);
+        if (order) {
+          addNotification(
+            `Order #${orderId} status updated to ${newStatus.toUpperCase()}`,
+            'order_update',
+            orderId
+          );
+        }
 
-    // Add notification for status update
-    const order = orders.find(o => o.id === orderId);
-    if (order) {
-      addNotification(
-        `Order #${orderId} status updated to ${newStatus.toUpperCase()}`,
-        'order_update',
-        orderId
-      );
-    }
-
-    // Update selected order if it's the one being modified
-    if (selectedOrder && selectedOrder.id === orderId) {
-      setSelectedOrder({ ...selectedOrder, status: newStatus });
-    }
+        // Update selected order if it's the one being modified
+        if (selectedOrder && selectedOrder.id === orderId) {
+          setSelectedOrder({ ...selectedOrder, status: newStatus });
+        }
+      })
+      .catch((error) => {
+        console.error('Error updating order status:', error);
+        alert('Failed to update order status. Please try again.');
+      });
   };
 
   const getStatusColor = (status: string) => {
@@ -368,8 +351,8 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
 
   const filteredOrders = orders.filter(order => {
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
-    const matchesSearch = order.customerDetails.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.customerDetails.roomNumber.includes(searchTerm) ||
+    const matchesSearch = order.customer_details.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         order.customer_details.room_number.includes(searchTerm) ||
                          order.id.includes(searchTerm);
     return matchesStatus && matchesSearch;
   });
@@ -686,7 +669,26 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
           </div>
 
           {/* Orders List */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+          {ordersLoading ? (
+            <div className="text-center py-16">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading orders...</p>
+            </div>
+          ) : ordersError ? (
+            <div className="text-center py-16">
+              <ChefHat className="h-16 w-16 text-red-300 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-red-900 mb-2">Database Connection Error</h3>
+              <p className="text-red-600 mb-4">Unable to load orders. Please check your database connection.</p>
+              <p className="text-sm text-red-500">{ordersError}</p>
+            </div>
+          ) : filteredOrders.length === 0 ? (
+            <div className="text-center py-12">
+              <ChefHat className="h-12 w-12 sm:h-16 sm:w-16 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500 text-base sm:text-lg">No orders found</p>
+              <p className="text-gray-400 text-xs sm:text-sm mt-2">Orders will appear here when customers place them</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
             {filteredOrders.map((order) => (
               <div
                 key={order.id}
@@ -713,15 +715,15 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
                   <div className="mb-4">
                     <div className="flex items-center space-x-2 mb-2">
                       <User className="h-3 w-3 sm:h-4 sm:w-4 text-gray-600" />
-                      <span className="font-semibold text-gray-900 text-sm sm:text-base">{order.customerDetails.name}</span>
+                      <span className="font-semibold text-gray-900 text-sm sm:text-base">{order.customer_details.name}</span>
                     </div>
                     <div className="flex items-center space-x-2 mb-2">
                       <Phone className="h-3 w-3 sm:h-4 sm:w-4 text-gray-600" />
-                      <span className="text-gray-700 text-sm sm:text-base">+91 {order.customerDetails.mobile}</span>
+                      <span className="text-gray-700 text-sm sm:text-base">+91 {order.customer_details.mobile}</span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <MapPin className="h-3 w-3 sm:h-4 sm:w-4 text-gray-600" />
-                      <span className="text-gray-700 text-sm sm:text-base">Room {order.customerDetails.roomNumber}</span>
+                      <span className="text-gray-700 text-sm sm:text-base">Room {order.customer_details.room_number}</span>
                     </div>
                   </div>
 
@@ -799,13 +801,6 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
                 </div>
               </div>
             ))}
-          </div>
-
-          {filteredOrders.length === 0 && (
-            <div className="text-center py-12">
-              <ChefHat className="h-12 w-12 sm:h-16 sm:w-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 text-base sm:text-lg">No orders found</p>
-              <p className="text-gray-400 text-xs sm:text-sm mt-2">Orders will appear here when customers place them</p>
             </div>
           )}
         </div>
@@ -850,6 +845,10 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
                       <span className="text-gray-600">Time:</span>
                       <p className="font-semibold">{formatTime(selectedOrder.timestamp)}</p>
                     </div>
+                    <div>
+                      <span className="text-gray-600">Room:</span>
+                      <p className="font-semibold">{selectedOrder.customer_details.room_number}</p>
+                    </div>
                   </div>
                 </div>
 
@@ -858,15 +857,15 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2">
                       <User className="h-3 w-3 sm:h-4 sm:w-4 text-gray-600" />
-                      <span className="font-semibold text-sm sm:text-base">{selectedOrder.customerDetails.name}</span>
+                      <span className="font-semibold text-sm sm:text-base">{selectedOrder.customer_details.name}</span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Phone className="h-3 w-3 sm:h-4 sm:w-4 text-gray-600" />
-                      <span className="text-sm sm:text-base">+91 {selectedOrder.customerDetails.mobile}</span>
+                      <span className="text-sm sm:text-base">+91 {selectedOrder.customer_details.mobile}</span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <MapPin className="h-3 w-3 sm:h-4 sm:w-4 text-gray-600" />
-                      <span className="text-sm sm:text-base">Room {selectedOrder.customerDetails.roomNumber}</span>
+                      <span className="text-sm sm:text-base">Room {selectedOrder.customer_details.room_number}</span>
                     </div>
                   </div>
                 </div>
@@ -897,7 +896,7 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
                     <span className="text-base sm:text-lg font-bold text-gray-900">Total Amount</span>
                     <span className="text-xl sm:text-2xl font-bold text-amber-600">₹{selectedOrder.total}</span>
                   </div>
-                  <p className="text-xs sm:text-sm text-gray-600 mt-1">Payment: {selectedOrder.paymentMethod}</p>
+                  <p className="text-xs sm:text-sm text-gray-600 mt-1">Payment: {selectedOrder.payment_method}</p>
                 </div>
 
                 <div className="flex space-x-3">
