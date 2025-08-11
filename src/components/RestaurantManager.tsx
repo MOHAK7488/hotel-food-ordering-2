@@ -254,51 +254,57 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
   // Load orders from localStorage and listen for new orders with real-time updates
   useEffect(() => {
     const loadOrders = () => {
-      const savedOrders = localStorage.getItem('hotelOrders');
-      if (savedOrders) {
-        const parsedOrders = JSON.parse(savedOrders).map((order: any) => ({
-          ...order,
-          timestamp: new Date(order.timestamp)
-        }));
-        
-        // Check for new orders by comparing order IDs
-        const currentOrderIds = new Set(parsedOrders.map((order: RestaurantOrder) => order.id));
-        const newOrderIds = [...currentOrderIds].filter(id => !lastOrderIds.has(id));
-        
-        // If there are new orders and we have previous orders, show notification
-        if (newOrderIds.length > 0 && lastOrderIds.size > 0) {
-          console.log('New orders detected:', newOrderIds);
-          playNotificationSound();
-          setNewOrderAlert(true);
+      try {
+        const savedOrders = localStorage.getItem('hotelOrders');
+        if (savedOrders) {
+          const parsedOrders = JSON.parse(savedOrders).map((order: any) => ({
+            ...order,
+            timestamp: new Date(order.timestamp)
+          }));
           
-          // Add notifications for new orders
-          newOrderIds.forEach(orderId => {
-            const newOrder = parsedOrders.find((order: RestaurantOrder) => order.id === orderId);
-            if (newOrder) {
-              addNotification(
-                `New order #${orderId} from Room ${newOrder.customerDetails.roomNumber}`,
-                'new_order',
-                orderId
-              );
-            }
-          });
+          // Check for new orders by comparing order IDs
+          const currentOrderIds = new Set(parsedOrders.map((order: RestaurantOrder) => order.id));
+          const newOrderIds = [...currentOrderIds].filter(id => !lastOrderIds.has(id));
           
-          // Show alert for 5 seconds
-          setTimeout(() => {
-            setNewOrderAlert(false);
-          }, 5000);
+          // If there are new orders and we have previous orders, show notification
+          if (newOrderIds.length > 0 && lastOrderIds.size > 0) {
+            console.log('New orders detected:', newOrderIds);
+            playNotificationSound();
+            setNewOrderAlert(true);
+            
+            // Add notifications for new orders
+            newOrderIds.forEach(orderId => {
+              const newOrder = parsedOrders.find((order: RestaurantOrder) => order.id === orderId);
+              if (newOrder) {
+                addNotification(
+                  `New order #${orderId} from Room ${newOrder.customerDetails.roomNumber}`,
+                  'new_order',
+                  orderId
+                );
+              }
+            });
+            
+            // Show alert for 5 seconds
+            setTimeout(() => {
+              setNewOrderAlert(false);
+            }, 5000);
+          }
+          
+          // Update last order IDs
+          setLastOrderIds(currentOrderIds);
+          
+          setOrders(parsedOrders);
+          setLastOrderCount(parsedOrders.length);
+          
+          // Count new orders for notifications
+          const newOrdersCount = parsedOrders.filter((order: RestaurantOrder) => order.status === 'new').length;
+          setNotifications(newOrdersCount);
+        } else {
+          setOrders([]);
+          setNotifications(0);
         }
-        
-        // Update last order IDs
-        setLastOrderIds(currentOrderIds);
-        
-        setOrders(parsedOrders);
-        setLastOrderCount(parsedOrders.length);
-        
-        // Count new orders for notifications
-        const newOrdersCount = parsedOrders.filter((order: RestaurantOrder) => order.status === 'new').length;
-        setNotifications(newOrdersCount);
-      } else {
+      } catch (error) {
+        console.error('Error loading orders:', error);
         setOrders([]);
         setNotifications(0);
       }

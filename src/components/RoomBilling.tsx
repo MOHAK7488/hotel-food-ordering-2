@@ -79,62 +79,67 @@ const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
       console.log('Saved bills:', savedBills);
       
       if (savedOrders) {
-        const allOrders: RoomOrder[] = JSON.parse(savedOrders).map((order: any) => ({
-          ...order,
-          timestamp: new Date(order.timestamp),
-          billPaid: order.billPaid || false
-        }));
+        try {
+          const allOrders: RoomOrder[] = JSON.parse(savedOrders).map((order: any) => ({
+            ...order,
+            timestamp: new Date(order.timestamp),
+            billPaid: order.billPaid || false
+          }));
 
-        console.log('All orders loaded:', allOrders.length);
+          console.log('All orders loaded:', allOrders.length);
 
-        // Group orders by room number AND mobile number (unique customer per room)
-        const customerBillsMap = new Map<string, RoomOrder[]>();
-        
-        allOrders.forEach(order => {
-          // Create unique bill ID using room number + mobile number
-          const billId = `${order.customerDetails.roomNumber}-${order.customerDetails.mobile}`;
-          if (!customerBillsMap.has(billId)) {
-            customerBillsMap.set(billId, []);
-          }
-          customerBillsMap.get(billId)!.push(order);
-        });
-
-        console.log('Customer bills map:', customerBillsMap);
-
-        // Load saved bill payment status
-        const savedBillStatus = savedBills ? JSON.parse(savedBills) : {};
-        console.log('Saved bill status:', savedBillStatus);
-
-        // Create room bills for each unique customer-room combination
-        const bills: RoomBill[] = Array.from(customerBillsMap.entries()).map(([billId, orders]) => {
-          const totalAmount = orders.reduce((sum, order) => sum + order.total, 0);
-          const sortedOrders = orders.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-          const lastOrderDate = new Date(Math.max(...orders.map(order => order.timestamp.getTime())));
-          const firstOrderDate = new Date(Math.min(...orders.map(order => order.timestamp.getTime())));
-          const isPaid = savedBillStatus[billId] || false;
+          // Group orders by room number AND mobile number (unique customer per room)
+          const customerBillsMap = new Map<string, RoomOrder[]>();
           
-          // Get customer details from the most recent order
-          const latestOrder = sortedOrders[0];
+          allOrders.forEach(order => {
+            // Create unique bill ID using room number + mobile number
+            const billId = `${order.customerDetails.roomNumber}-${order.customerDetails.mobile}`;
+            if (!customerBillsMap.has(billId)) {
+              customerBillsMap.set(billId, []);
+            }
+            customerBillsMap.get(billId)!.push(order);
+          });
 
-          return {
-            billId,
-            roomNumber: latestOrder.customerDetails.roomNumber,
-            orders: sortedOrders,
-            totalAmount,
-            isPaid,
-            lastOrderDate,
-            firstOrderDate,
-            customerName: latestOrder.customerDetails.name,
-            customerMobile: latestOrder.customerDetails.mobile,
-            orderCount: orders.length
-          };
-        });
+          console.log('Customer bills map:', customerBillsMap);
 
-        // Sort by last order date (most recent first)
-        bills.sort((a, b) => b.lastOrderDate.getTime() - a.lastOrderDate.getTime());
-        
-        console.log('Final bills:', bills);
-        setRoomBills(bills);
+          // Load saved bill payment status
+          const savedBillStatus = savedBills ? JSON.parse(savedBills) : {};
+          console.log('Saved bill status:', savedBillStatus);
+
+          // Create room bills for each unique customer-room combination
+          const bills: RoomBill[] = Array.from(customerBillsMap.entries()).map(([billId, orders]) => {
+            const totalAmount = orders.reduce((sum, order) => sum + order.total, 0);
+            const sortedOrders = orders.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+            const lastOrderDate = new Date(Math.max(...orders.map(order => order.timestamp.getTime())));
+            const firstOrderDate = new Date(Math.min(...orders.map(order => order.timestamp.getTime())));
+            const isPaid = savedBillStatus[billId] || false;
+            
+            // Get customer details from the most recent order
+            const latestOrder = sortedOrders[0];
+
+            return {
+              billId,
+              roomNumber: latestOrder.customerDetails.roomNumber,
+              orders: sortedOrders,
+              totalAmount,
+              isPaid,
+              lastOrderDate,
+              firstOrderDate,
+              customerName: latestOrder.customerDetails.name,
+              customerMobile: latestOrder.customerDetails.mobile,
+              orderCount: orders.length
+            };
+          });
+
+          // Sort by last order date (most recent first)
+          bills.sort((a, b) => b.lastOrderDate.getTime() - a.lastOrderDate.getTime());
+          
+          console.log('Final bills:', bills);
+          setRoomBills(bills);
+        } catch (parseError) {
+          console.error('Error parsing saved orders:', parseError);
+          setRoomBills([]);
+        }
       } else {
         console.log('No saved orders found');
         setRoomBills([]);

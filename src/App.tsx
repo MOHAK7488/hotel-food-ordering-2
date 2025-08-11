@@ -53,32 +53,135 @@ function App() {
   const loadMenuItems = async () => {
     try {
       setIsLoadingMenu(true);
-      const items = await menuItemsAPI.getAll();
-      setMenuItems(items);
+      // Only try Supabase if it's configured
+      if (supabase) {
+        const items = await menuItemsAPI.getAll();
+        setMenuItems(items);
+      } else {
+        // Fallback to localStorage if Supabase is not configured
+        const savedMenu = localStorage.getItem('hotelMenuItems');
+        if (savedMenu) {
+          setMenuItems(JSON.parse(savedMenu));
+        } else {
+          // Load default menu items
+          loadDefaultMenuItems();
+        }
+      }
     } catch (error) {
       console.error('Error loading menu items:', error);
       // Fallback to localStorage if Supabase fails
       const savedMenu = localStorage.getItem('hotelMenuItems');
       if (savedMenu) {
         setMenuItems(JSON.parse(savedMenu));
+      } else {
+        // Load default menu items
+        loadDefaultMenuItems();
       }
     } finally {
       setIsLoadingMenu(false);
     }
   };
 
+  const loadDefaultMenuItems = () => {
+    const defaultMenuItems = [
+      {
+        id: 1,
+        name: "Paneer Tikka",
+        price: 280,
+        description: "Marinated cottage cheese cubes grilled to perfection with aromatic spices",
+        category: "Starters",
+        veg: true,
+        image: "https://images.pexels.com/photos/4449068/pexels-photo-4449068.jpeg?auto=compress&cs=tinysrgb&w=400",
+        popular: true
+      },
+      {
+        id: 2,
+        name: "Chicken Tikka",
+        price: 320,
+        description: "Tender chicken pieces marinated in yogurt and spices, grilled in tandoor",
+        category: "Starters",
+        veg: false,
+        image: "https://images.pexels.com/photos/5410400/pexels-photo-5410400.jpeg?auto=compress&cs=tinysrgb&w=400",
+        popular: true,
+        spicy: true
+      },
+      {
+        id: 3,
+        name: "Butter Chicken",
+        price: 420,
+        description: "Creamy tomato-based curry with tender chicken pieces and aromatic spices",
+        category: "Main Course",
+        veg: false,
+        image: "https://images.pexels.com/photos/5410400/pexels-photo-5410400.jpeg?auto=compress&cs=tinysrgb&w=400",
+        popular: true
+      },
+      {
+        id: 4,
+        name: "Dal Makhani",
+        price: 280,
+        description: "Rich and creamy black lentils slow-cooked with butter and cream",
+        category: "Main Course",
+        veg: true,
+        image: "https://images.pexels.com/photos/4449068/pexels-photo-4449068.jpeg?auto=compress&cs=tinysrgb&w=400",
+        popular: true
+      },
+      {
+        id: 5,
+        name: "Biryani (Chicken)",
+        price: 380,
+        description: "Fragrant basmati rice cooked with tender chicken and aromatic spices",
+        category: "Main Course",
+        veg: false,
+        image: "https://images.pexels.com/photos/5410400/pexels-photo-5410400.jpeg?auto=compress&cs=tinysrgb&w=400",
+        popular: true,
+        spicy: true
+      },
+      {
+        id: 6,
+        name: "Butter Naan",
+        price: 80,
+        description: "Soft and fluffy bread brushed with butter, baked in tandoor",
+        category: "Breads",
+        veg: true,
+        image: "https://images.pexels.com/photos/4449068/pexels-photo-4449068.jpeg?auto=compress&cs=tinysrgb&w=400"
+      },
+      {
+        id: 7,
+        name: "Masala Chai",
+        price: 60,
+        description: "Traditional Indian tea brewed with aromatic spices",
+        category: "Beverages",
+        veg: true,
+        image: "https://images.pexels.com/photos/4449068/pexels-photo-4449068.jpeg?auto=compress&cs=tinysrgb&w=400"
+      },
+      {
+        id: 8,
+        name: "Gulab Jamun",
+        price: 140,
+        description: "Soft milk dumplings soaked in rose-flavored sugar syrup",
+        category: "Desserts",
+        veg: true,
+        image: "https://images.pexels.com/photos/4449068/pexels-photo-4449068.jpeg?auto=compress&cs=tinysrgb&w=400"
+      }
+    ];
+    setMenuItems(defaultMenuItems);
+    localStorage.setItem('hotelMenuItems', JSON.stringify(defaultMenuItems));
+  };
   // Listen for real-time menu updates
   useEffect(() => {
-    const subscription = supabase
-      .channel('menu_items_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'menu_items' }, () => {
-        loadMenuItems();
-      })
-      .subscribe();
+    // Only set up real-time subscriptions if Supabase is configured
+    if (supabase) {
+      const subscription = supabase
+        .channel('menu_items_changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'menu_items' }, () => {
+          loadMenuItems();
+        })
+        .subscribe();
 
-    return () => {
-      subscription.unsubscribe();
-    };
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
   }, []);
 
   // Check manager authentication on app load
@@ -177,7 +280,14 @@ function App() {
         veg: item.veg
       }));
 
-      await ordersAPI.create(order, orderItems);
+      // Try Supabase first, fallback to localStorage
+      if (supabase) {
+        await ordersAPI.create(order, orderItems);
+      } else {
+        // Fallback to localStorage
+        handlePlaceOrderLegacy();
+        return;
+      }
 
       // Clear cart and close checkout
       setCart([]);
@@ -188,7 +298,9 @@ function App() {
       alert('Order placed successfully! You will receive updates on your order status.');
     } catch (error) {
       console.error('Error placing order:', error);
-      alert('Failed to place order. Please try again.');
+      // Fallback to localStorage if Supabase fails
+      console.log('Falling back to localStorage...');
+      handlePlaceOrderLegacy();
     } finally {
       setIsPlacingOrder(false);
     }
