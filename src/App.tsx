@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChefHat, Phone, Shield, User, Clock, Star, MapPin, Plus, Minus, ShoppingCart, X, CreditCard, Utensils, Bed, Wifi, Car, Dumbbell, ExternalLink, Search } from 'lucide-react';
-import { supabase, menuItemsAPI, ordersAPI } from './lib/supabase';
+import { supabase, menuItemsAPI, ordersAPI, isSupabaseConfigured } from './lib/supabase';
 import ManagerLogin from './components/ManagerLogin';
 import RestaurantManager from './components/RestaurantManager';
 import OrderHistory from './components/OrderHistory';
@@ -44,20 +44,26 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoadingMenu, setIsLoadingMenu] = useState(true);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [databaseConnected, setDatabaseConnected] = useState(false);
 
   // Load menu items from Supabase
   useEffect(() => {
+    // Check database connection
+    setDatabaseConnected(isSupabaseConfigured());
     loadMenuItems();
   }, []);
 
   const loadMenuItems = async () => {
     try {
       setIsLoadingMenu(true);
-      // Only try Supabase if it's configured
-      if (supabase) {
+      
+      if (isSupabaseConfigured()) {
+        console.log('Loading menu items from Supabase...');
         const items = await menuItemsAPI.getAll();
+        console.log('Menu items loaded from Supabase:', items.length);
         setMenuItems(items);
       } else {
+        console.log('Supabase not configured, using localStorage fallback');
         // Fallback to localStorage if Supabase is not configured
         const savedMenu = localStorage.getItem('hotelMenuItems');
         if (savedMenu) {
@@ -69,6 +75,7 @@ function App() {
       }
     } catch (error) {
       console.error('Error loading menu items:', error);
+      console.log('Falling back to localStorage due to error');
       // Fallback to localStorage if Supabase fails
       const savedMenu = localStorage.getItem('hotelMenuItems');
       if (savedMenu) {
@@ -169,11 +176,12 @@ function App() {
   };
   // Listen for real-time menu updates
   useEffect(() => {
-    // Only set up real-time subscriptions if Supabase is configured
-    if (supabase) {
+    if (isSupabaseConfigured()) {
+      console.log('Setting up real-time menu subscriptions...');
       const subscription = supabase
         .channel('menu_items_changes')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'menu_items' }, () => {
+          console.log('Menu items changed, reloading...');
           loadMenuItems();
         })
         .subscribe();
@@ -258,6 +266,7 @@ function App() {
     if (cart.length === 0 || !customerDetails.name || !customerDetails.mobile || !customerDetails.roomNumber) return;
 
     setIsPlacingOrder(true);
+    console.log('Placing order...', { databaseConnected });
 
     try {
       const orderId = Date.now().toString();
@@ -280,10 +289,12 @@ function App() {
         veg: item.veg
       }));
 
-      // Try Supabase first, fallback to localStorage
-      if (supabase) {
+      if (isSupabaseConfigured()) {
+        console.log('Saving order to Supabase database...');
         await ordersAPI.create(order, orderItems);
+        console.log('Order saved to Supabase successfully!');
       } else {
+        console.log('Database not configured, using localStorage fallback');
         // Fallback to localStorage
         handlePlaceOrderLegacy();
         return;
@@ -298,8 +309,7 @@ function App() {
       alert('Order placed successfully! You will receive updates on your order status.');
     } catch (error) {
       console.error('Error placing order:', error);
-      // Fallback to localStorage if Supabase fails
-      console.log('Falling back to localStorage...');
+      console.log('Database error, falling back to localStorage...');
       handlePlaceOrderLegacy();
     } finally {
       setIsPlacingOrder(false);
@@ -374,6 +384,11 @@ function App() {
                   <p className="text-xs sm:text-sm text-gray-600">Premium Room Service Experience</p>
                 </div>
               </div>
+              {!databaseConnected && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-3 py-2 text-xs">
+                  <p className="text-yellow-800 font-medium">⚠️ Database not connected - orders will be local only</p>
+                </div>
+              )}
               <div className="flex items-center space-x-2 sm:space-x-4">
                 <button
                   onClick={() => setCurrentView('food-ordering')}

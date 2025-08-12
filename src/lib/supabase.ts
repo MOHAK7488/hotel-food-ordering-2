@@ -1,13 +1,25 @@
 import { createClient } from '@supabase/supabase-js'
 
 // Supabase configuration with fallback for production
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-// Create Supabase client only if environment variables are available
+// Create Supabase client - will be null if env vars not available
 export const supabase = supabaseUrl && supabaseAnonKey 
-  ? createClient(supabaseUrl, supabaseAnonKey)
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      realtime: {
+        params: {
+          eventsPerSecond: 10
+        }
+      }
+    })
   : null
+
+// Check if Supabase is properly configured
+export const isSupabaseConfigured = () => {
+  return !!(supabaseUrl && supabaseAnonKey && supabase)
+}
+
 // Database types
 export interface MenuItem {
   id: string
@@ -108,6 +120,8 @@ export const menuItemsAPI = {
 // Orders API
 export const ordersAPI = {
   async getAll() {
+    if (!supabase) throw new Error('Supabase not configured')
+    
     const { data: orders, error: ordersError } = await supabase
       .from('orders')
       .select('*')
@@ -131,6 +145,8 @@ export const ordersAPI = {
   },
 
   async create(order: Omit<Order, 'created_at' | 'updated_at'>, items: Omit<OrderItem, 'id' | 'order_id' | 'created_at'>[]) {
+    if (!supabase) throw new Error('Supabase not configured')
+    
     // Insert order
     const { data: orderData, error: orderError } = await supabase
       .from('orders')
@@ -157,6 +173,8 @@ export const ordersAPI = {
   },
 
   async updateStatus(orderId: string, status: Order['status']) {
+    if (!supabase) throw new Error('Supabase not configured')
+    
     const { data, error } = await supabase
       .from('orders')
       .update({ status, updated_at: new Date().toISOString() })
@@ -169,6 +187,8 @@ export const ordersAPI = {
   },
 
   async getByMobile(mobile: string) {
+    if (!supabase) throw new Error('Supabase not configured')
+    
     const { data: orders, error: ordersError } = await supabase
       .from('orders')
       .select('*')
@@ -232,6 +252,8 @@ export const roomBillsAPI = {
 
 // Real-time subscriptions
 export const subscribeToOrders = (callback: (payload: any) => void) => {
+  if (!supabase) return null
+  
   return supabase
     .channel('orders_changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, callback)
@@ -240,6 +262,8 @@ export const subscribeToOrders = (callback: (payload: any) => void) => {
 }
 
 export const subscribeToMenuItems = (callback: (payload: any) => void) => {
+  if (!supabase) return null
+  
   return supabase
     .channel('menu_items_changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'menu_items' }, callback)
@@ -247,6 +271,8 @@ export const subscribeToMenuItems = (callback: (payload: any) => void) => {
 }
 
 export const subscribeToRoomBills = (callback: (payload: any) => void) => {
+  if (!supabase) return null
+  
   return supabase
     .channel('room_bills_changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'room_bills' }, callback)
