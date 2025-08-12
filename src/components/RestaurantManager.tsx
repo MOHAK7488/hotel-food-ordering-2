@@ -27,6 +27,7 @@ import {
   CreditCard,
   Menu
 } from 'lucide-react';
+import { supabase, ordersAPI, subscribeToOrders, isSupabaseConfigured } from '../lib/supabase';
 import RoomBilling from './RoomBilling';
 import MenuManager from './MenuManager';
 
@@ -82,6 +83,7 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
     orderId: string;
     read: boolean;
   }>>([]);
+  const [databaseConnected, setDatabaseConnected] = useState(false);
   
   // Audio context for notification sound
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -251,9 +253,58 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
     return () => clearInterval(sessionInterval);
   }, [onLogout]);
 
-  // Load orders from localStorage and listen for new orders with real-time updates
+  // Load orders from database/localStorage and listen for new orders with real-time updates
   useEffect(() => {
     const loadOrders = () => {
+      try {
+        setDatabaseConnected(isSupabaseConfigured());
+        
+        if (isSupabaseConfigured()) {
+          console.log('Loading orders from Supabase database...');
+          loadOrdersFromDatabase();
+        } else {
+          console.log('Loading orders from localStorage...');
+          loadOrdersFromLocalStorage();
+        }
+      } catch (error) {
+        console.error('Error loading orders:', error);
+        loadOrdersFromLocalStorage();
+      }
+    };
+
+    const loadOrdersFromDatabase = async () => {
+      try {
+        const dbOrders = await ordersAPI.getAll();
+        console.log('Orders loaded from database:', dbOrders.length);
+        
+        const parsedOrders = dbOrders.map((order: any) => ({
+          id: order.id,
+          items: order.items.map((item: any) => ({
+            id: parseInt(item.menu_item_id),
+            name: item.menu_item_name,
+            quantity: item.quantity,
+            price: item.price,
+            veg: item.veg
+          })),
+          customerDetails: {
+            name: order.customer_name,
+            mobile: order.customer_mobile,
+            roomNumber: order.room_number
+          },
+          total: order.total,
+          timestamp: new Date(order.created_at),
+          status: order.status,
+          paymentMethod: order.payment_method
+        }));
+        
+        processOrders(parsedOrders);
+      } catch (error) {
+        console.error('Error loading from database:', error);
+        loadOrdersFromLocalStorage();
+      }
+    };
+
+    const loadOrdersFromLocalStorage = () => {
       try {
         const savedOrders = localStorage.getItem('hotelOrders');
         if (savedOrders) {
@@ -261,63 +312,108 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
             ...order,
             timestamp: new Date(order.timestamp)
           }));
-          
-          // Check for new orders by comparing order IDs
-          const currentOrderIds = new Set(parsedOrders.map((order: RestaurantOrder) => order.id));
-          const newOrderIds = [...currentOrderIds].filter(id => !lastOrderIds.has(id));
-          
-          // If there are new orders and we have previous orders, show notification
-          if (newOrderIds.length > 0 && lastOrderIds.size > 0) {
-            console.log('New orders detected:', newOrderIds);
-            playNotificationSound();
-            setNewOrderAlert(true);
-            
-            // Add notifications for new orders
-            newOrderIds.forEach(orderId => {
-              const newOrder = parsedOrders.find((order: RestaurantOrder) => order.id === orderId);
-              if (newOrder) {
-                addNotification(
-                  `New order #${orderId} from Room ${newOrder.customerDetails.roomNumber}`,
-                  'new_order',
-                  orderId
-                );
-              }
-            });
-            
-            // Show alert for 5 seconds
-            setTimeout(() => {
-              setNewOrderAlert(false);
-            }, 5000);
-          }
-          
-          // Update last order IDs
-          setLastOrderIds(currentOrderIds);
-          
-          setOrders(parsedOrders);
-          setLastOrderCount(parsedOrders.length);
-          
-          // Count new orders for notifications
-          const newOrdersCount = parsedOrders.filter((order: RestaurantOrder) => order.status === 'new').length;
-          setNotifications(newOrdersCount);
+          processOrders(parsedOrders);
         } else {
           setOrders([]);
           setNotifications(0);
         }
       } catch (error) {
-        console.error('Error loading orders:', error);
+        console.error('Error loading from localStorage:', error);
         setOrders([]);
         setNotifications(0);
       }
     };
 
+    const processOrders = (parsedOrders: RestaurantOrder[]) => {
+      // Check for new orders by comparing order IDs
+      const currentOrderIds = new Set(parsedOrders.map((order: RestaurantOrder) => order.id));
+      const newOrderIds = [...currentOrderIds].filter(id => !lastOrderIds.has(id));
+      
+      // If there are new orders and we have previous orders, show notification
+      if (newOrderIds.length > 0 && lastOrderIds.size > 0) {
+        console.log('New orders detected:', newOrderIds);
+        playNotificationSound();
+        setNewOrderAlert(true);
+        
+        // Add notifications for new orders
+        newOrderIds.forEach(orderId => {
+          const newOrder = parsedOrders.find((order: RestaurantOrder) => order.id === orderId);
+          if (newOrder) {
+            addNotification(
+              `New order #${orderId} from Room ${newOrder.customerDetails.roomNumber}`,
+              'new_order',
+              orderId
+            );
+          }
+        });
+        
+        // Show alert for 5 seconds
+        setTimeout(() => {
+          setNewOrderAlert(false);
+        }, 5000);
+      }
+      
+      // Update last order IDs
+      setLastOrderIds(currentOrderIds);
+      
+      setOrders(parsedOrders);
+      setLastOrderCount(parsedOrders.length);
+      
+      // Count new orders for notifications
+      const newOrdersCount = parsedOrders.filter((order: RestaurantOrder) => order.status === 'new').length;
+      setNotifications(newOrdersCount);
+    };
+
     // Load orders initially
     loadOrders();
 
-    // Set up interval to check for new orders every 2 seconds for real-time updates
-    const interval = setInterval(loadOrders, 2000);
+    // Set up real-time subscriptions if database is connected
+    let subscription: any = null;
+    if (isSupabaseConfigured()) {
+      console.log('Setting up real-time order subscriptions...');
+      subscription = subscribeToOrders((payload) => {
+        console.log('Real-time order update received:', payload);
+        loadOrders();
+      });
+    }
 
-    return () => clearInterval(interval);
+    // Set up interval to check for new orders (fallback for localStorage)
+    const interval = setInterval(loadOrders, isSupabaseConfigured() ? 10000 : 2000);
+
+    return () => {
+      clearInterval(interval);
+      if (subscription) {
+        subscription.unsubscribe();
+      }
+    };
   }, [lastOrderIds, soundEnabled]);
+
+  // Legacy method for loading orders from localStorage
+  const loadOrdersLegacy = () => {
+    try {
+      const savedOrders = localStorage.getItem('hotelOrders');
+      if (savedOrders) {
+        const parsedOrders = JSON.parse(savedOrders).map((order: any) => ({
+          ...order,
+          timestamp: new Date(order.timestamp)
+        }));
+          
+        setOrders(parsedOrders);
+        setLastOrderCount(parsedOrders.length);
+        
+        // Count new orders for notifications
+        const newOrdersCount = parsedOrders.filter((order: RestaurantOrder) => order.status === 'new').length;
+        setNotifications(newOrdersCount);
+      } else {
+        setOrders([]);
+        setNotifications(0);
+      }
+    } catch (error) {
+      console.error('Error loading orders:', error);
+      setOrders([]);
+      setNotifications(0);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('managerLoginTime');
@@ -326,29 +422,49 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
   };
 
   const updateOrderStatus = (orderId: string, newStatus: 'new' | 'preparing' | 'ready' | 'delivered') => {
-    const updatedOrders = orders.map(order => 
-      order.id === orderId ? { ...order, status: newStatus } : order
-    );
-    setOrders(updatedOrders);
-    localStorage.setItem('hotelOrders', JSON.stringify(updatedOrders));
-    
-    // Update notifications count
-    const newOrdersCount = updatedOrders.filter(order => order.status === 'new').length;
-    setNotifications(newOrdersCount);
-
-    // Add notification for status update
-    const order = orders.find(o => o.id === orderId);
-    if (order) {
-      addNotification(
-        `Order #${orderId} status updated to ${newStatus.toUpperCase()}`,
-        'order_update',
-        orderId
-      );
+    if (isSupabaseConfigured()) {
+      // Update in database
+      ordersAPI.updateStatus(orderId, newStatus).then(() => {
+        console.log('Order status updated in database');
+        // Orders will be reloaded via real-time subscription
+      }).catch(error => {
+        console.error('Error updating order status in database:', error);
+        // Fallback to localStorage update
+        updateOrderStatusLocal(orderId, newStatus);
+      });
+    } else {
+      updateOrderStatusLocal(orderId, newStatus);
     }
+  };
 
-    // Update selected order if it's the one being modified
-    if (selectedOrder && selectedOrder.id === orderId) {
-      setSelectedOrder({ ...selectedOrder, status: newStatus });
+  const updateOrderStatusLocal = (orderId: string, newStatus: 'new' | 'preparing' | 'ready' | 'delivered') => {
+    try {
+      const updatedOrders = orders.map(order => 
+        order.id === orderId ? { ...order, status: newStatus } : order
+      );
+      setOrders(updatedOrders);
+      localStorage.setItem('hotelOrders', JSON.stringify(updatedOrders));
+      
+      // Update notifications count
+      const newOrdersCount = updatedOrders.filter(order => order.status === 'new').length;
+      setNotifications(newOrdersCount);
+
+      // Add notification for status update
+      const order = orders.find(o => o.id === orderId);
+      if (order) {
+        addNotification(
+          `Order #${orderId} status updated to ${newStatus.toUpperCase()}`,
+          'order_update',
+          orderId
+        );
+      }
+
+      // Update selected order if it's the one being modified
+      if (selectedOrder && selectedOrder.id === orderId) {
+        setSelectedOrder({ ...selectedOrder, status: newStatus });
+      }
+    } catch (error) {
+      console.error('Error updating order status locally:', error);
     }
   };
 
@@ -453,10 +569,15 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
                 </h1>
                 <p className="text-xs sm:text-sm text-gray-600 flex items-center">
                   <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
-                  Live Dashboard - Real-time Updates
+                  {databaseConnected ? 'Live Dashboard - Database Connected' : 'Local Dashboard - Database Not Connected'}
                 </p>
               </div>
             </div>
+            {!databaseConnected && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-3 py-2 text-xs mr-4">
+                <p className="text-yellow-800 font-medium">⚠️ Database not connected - orders are local only</p>
+              </div>
+            )}
             <div className="flex items-center space-x-2 sm:space-x-4">
               <button
                 onClick={() => setShowMenuManager(true)}
