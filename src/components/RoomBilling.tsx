@@ -72,6 +72,32 @@ const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
     setIsLoading(true);
     
     try {
+      // Try to load from database first, then fallback to localStorage
+      if (isSupabaseConfigured()) {
+        loadRoomBillsFromDatabase();
+      } else {
+        loadRoomBillsFromLocalStorage();
+      }
+    } catch (error) {
+      console.error('Error loading room bills:', error);
+      loadRoomBillsFromLocalStorage();
+    }
+  };
+
+  const loadRoomBillsFromDatabase = async () => {
+    try {
+      console.log('Loading room bills from database...');
+      // This would use ordersAPI.getAll() when database is properly configured
+      // For now, fallback to localStorage
+      loadRoomBillsFromLocalStorage();
+    } catch (error) {
+      console.error('Error loading from database:', error);
+      loadRoomBillsFromLocalStorage();
+    }
+  };
+
+  const loadRoomBillsFromLocalStorage = () => {
+    try {
       const savedOrders = localStorage.getItem('hotelOrders');
       const savedBills = localStorage.getItem('hotelRoomBills');
       
@@ -145,12 +171,12 @@ const RoomBilling: React.FC<RoomBillingProps> = ({ onBack }) => {
         setRoomBills([]);
       }
     } catch (error) {
-      console.error('Error loading room bills:', error);
+      console.error('Error loading room bills from localStorage:', error);
       setRoomBills([]);
+    } finally {
+      setIsLoading(false);
+      setLastRefresh(new Date());
     }
-    
-    setIsLoading(false);
-    setLastRefresh(new Date());
   };
 
   useEffect(() => {

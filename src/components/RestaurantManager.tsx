@@ -257,9 +257,11 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
   useEffect(() => {
     const loadOrders = () => {
       try {
-        setDatabaseConnected(isSupabaseConfigured());
+        const dbConnected = isSupabaseConfigured();
+        setDatabaseConnected(dbConnected);
+        console.log('Database connection status:', dbConnected);
         
-        if (isSupabaseConfigured()) {
+        if (dbConnected) {
           console.log('Loading orders from Supabase database...');
           loadOrdersFromDatabase();
         } else {
@@ -274,6 +276,7 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
 
     const loadOrdersFromDatabase = async () => {
       try {
+        console.log('Attempting to load orders from database...');
         const dbOrders = await ordersAPI.getAll();
         console.log('Orders loaded from database:', dbOrders.length);
         
@@ -297,23 +300,30 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
           paymentMethod: order.payment_method
         }));
         
+        console.log('Parsed orders from database:', parsedOrders);
         processOrders(parsedOrders);
       } catch (error) {
         console.error('Error loading from database:', error);
+        console.log('Falling back to localStorage due to database error');
         loadOrdersFromLocalStorage();
       }
     };
 
     const loadOrdersFromLocalStorage = () => {
       try {
+        console.log('Loading orders from localStorage...');
         const savedOrders = localStorage.getItem('hotelOrders');
+        console.log('Raw localStorage data:', savedOrders);
+        
         if (savedOrders) {
           const parsedOrders = JSON.parse(savedOrders).map((order: any) => ({
             ...order,
             timestamp: new Date(order.timestamp)
           }));
+          console.log('Parsed orders from localStorage:', parsedOrders);
           processOrders(parsedOrders);
         } else {
+          console.log('No orders found in localStorage');
           setOrders([]);
           setNotifications(0);
         }
@@ -325,6 +335,8 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
     };
 
     const processOrders = (parsedOrders: RestaurantOrder[]) => {
+      console.log('Processing orders:', parsedOrders.length);
+      
       // Check for new orders by comparing order IDs
       const currentOrderIds = new Set(parsedOrders.map((order: RestaurantOrder) => order.id));
       const newOrderIds = [...currentOrderIds].filter(id => !lastOrderIds.has(id));
@@ -362,6 +374,8 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
       // Count new orders for notifications
       const newOrdersCount = parsedOrders.filter((order: RestaurantOrder) => order.status === 'new').length;
       setNotifications(newOrdersCount);
+      
+      console.log('Orders processed successfully. Total orders:', parsedOrders.length, 'New orders:', newOrdersCount);
     };
 
     // Load orders initially
@@ -378,7 +392,9 @@ const RestaurantManager: React.FC<RestaurantManagerProps> = ({ onLogout }) => {
     }
 
     // Set up interval to check for new orders (fallback for localStorage)
-    const interval = setInterval(loadOrders, isSupabaseConfigured() ? 10000 : 2000);
+    const refreshInterval = isSupabaseConfigured() ? 5000 : 2000; // 5 seconds for DB, 2 seconds for localStorage
+    console.log('Setting up refresh interval:', refreshInterval + 'ms');
+    const interval = setInterval(loadOrders, refreshInterval);
 
     return () => {
       clearInterval(interval);

@@ -1,23 +1,26 @@
 import { createClient } from '@supabase/supabase-js'
 
 // Supabase configuration with fallback for production
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co'
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key'
 
-// Create Supabase client - will be null if env vars not available
-export const supabase = supabaseUrl && supabaseAnonKey 
-  ? createClient(supabaseUrl, supabaseAnonKey, {
-      realtime: {
-        params: {
-          eventsPerSecond: 10
-        }
-      }
-    })
-  : null
+// Create Supabase client with proper configuration
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  realtime: {
+    params: {
+      eventsPerSecond: 10
+    }
+  },
+  auth: {
+    persistSession: false
+  }
+})
 
 // Check if Supabase is properly configured
 export const isSupabaseConfigured = () => {
-  return !!(supabaseUrl && supabaseAnonKey && supabase)
+  const hasValidUrl = supabaseUrl && supabaseUrl !== 'https://your-project.supabase.co'
+  const hasValidKey = supabaseAnonKey && supabaseAnonKey !== 'your-anon-key'
+  return !!(hasValidUrl && hasValidKey)
 }
 
 // Database types

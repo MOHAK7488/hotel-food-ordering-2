@@ -266,7 +266,7 @@ function App() {
     if (cart.length === 0 || !customerDetails.name || !customerDetails.mobile || !customerDetails.roomNumber) return;
 
     setIsPlacingOrder(true);
-    console.log('Placing order...', { databaseConnected });
+    console.log('Placing order...', { databaseConnected, isSupabaseConfigured: isSupabaseConfigured() });
 
     try {
       const orderId = Date.now().toString();
@@ -289,15 +289,45 @@ function App() {
         veg: item.veg
       }));
 
+      // Always try database first, then fallback to localStorage
+      let orderSaved = false;
+      
       if (isSupabaseConfigured()) {
         console.log('Saving order to Supabase database...');
-        await ordersAPI.create(order, orderItems);
-        console.log('Order saved to Supabase successfully!');
-      } else {
-        console.log('Database not configured, using localStorage fallback');
-        // Fallback to localStorage
-        handlePlaceOrderLegacy();
-        return;
+        try {
+          await ordersAPI.create(order, orderItems);
+          console.log('Order saved to Supabase successfully!');
+          orderSaved = true;
+        } catch (dbError) {
+          console.error('Database save failed:', dbError);
+          console.log('Falling back to localStorage...');
+        }
+      }
+      
+      // If database save failed or not configured, use localStorage
+      if (!orderSaved) {
+        console.log('Using localStorage for order storage');
+        const legacyOrder = {
+          id: orderId,
+          items: cart.map(item => ({
+            id: item.id,
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price,
+            veg: item.veg
+          })),
+          customerDetails: customerDetails,
+          total: getCartTotal(),
+          timestamp: new Date(),
+          status: 'new',
+          paymentMethod: 'Pay at checkout on reception using UPI, cash or card'
+        };
+
+        // Save order to localStorage
+        const existingOrders = JSON.parse(localStorage.getItem('hotelOrders') || '[]');
+        existingOrders.push(legacyOrder);
+        localStorage.setItem('hotelOrders', JSON.stringify(existingOrders));
+        console.log('Order saved to localStorage successfully!');
       }
 
       // Clear cart and close checkout
@@ -309,46 +339,12 @@ function App() {
       alert('Order placed successfully! You will receive updates on your order status.');
     } catch (error) {
       console.error('Error placing order:', error);
-      console.log('Database error, falling back to localStorage...');
-      handlePlaceOrderLegacy();
+      alert('There was an error placing your order. Please try again.');
     } finally {
       setIsPlacingOrder(false);
     }
   };
 
-  // Legacy method for localStorage fallback
-  const handlePlaceOrderLegacy = () => {
-    if (cart.length === 0 || !customerDetails.name || !customerDetails.mobile || !customerDetails.roomNumber) return;
-
-    const order = {
-      id: Date.now().toString(),
-      items: cart.map(item => ({
-        id: item.id,
-        name: item.name,
-        quantity: item.quantity,
-        price: item.price,
-        veg: item.veg
-      })),
-      customerDetails: customerDetails,
-      total: getCartTotal(),
-      timestamp: new Date(),
-      status: 'new',
-      paymentMethod: 'Pay at checkout on reception using UPI, cash or card'
-    };
-
-    // Save order to localStorage
-    const existingOrders = JSON.parse(localStorage.getItem('hotelOrders') || '[]');
-    existingOrders.push(order);
-    localStorage.setItem('hotelOrders', JSON.stringify(existingOrders));
-
-    // Clear cart and close checkout
-    setCart([]);
-    setShowCheckout(false);
-    setShowCart(false);
-    setCustomerDetails({ name: '', mobile: '', roomNumber: '' });
-
-    alert('Order placed successfully! You will receive updates on your order status.');
-  };
 
   const handleManagerLogin = () => {
     setIsManagerAuthenticated(true);
